@@ -1133,7 +1133,10 @@ begin
 
   fQueue[fCount].Tick    := gGame.GameTickCount;
   fQueue[fCount].Command := aCommand;
-  fQueue[fCount].Rand    := Cardinal(KaMRandom(MaxInt, 'TKMGameInputProcess.StoreCommand')); //This will be our check to ensure everything is consistent
+  if (aCommand.CommandType = gicGameAutoSave) then // Maybe also gicGameAutoSaveAfterPT and gicGameSaveReturnLobby
+    fQueue[fCount].Rand := 0
+  else
+    fQueue[fCount].Rand    := Cardinal(KaMRandom(MaxInt, 'TKMGameInputProcess.StoreCommand')); //This will be our check to ensure everything is consistent
 end;
 
 
