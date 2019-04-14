@@ -34,10 +34,10 @@ type
   TKMCityPredictor = class
   private
     fOwner: TKMHandID;
+    fCityStats: TCityStats;
     fWorkerCount: Word;
     fGoldMineCnt, fIronMineCnt, fFieldCnt, fBuildCnt: Integer;
     fMaxIronWeapProd, fMaxWoodWeapProd, fMaxSoldiersInMin, fPeaceFactor, fUpdatedPeaceFactor: Single;
-    fCityStats: TCityStats;
     fWareBalance: TWareBalanceArray;
     fFarmBuildHistory: THouseBuildHistory; // Farms are another exception in production (production is delayed and depends on position of each farm)
     fSetup: TKMHandAISetup;
@@ -161,15 +161,18 @@ begin
   fOwner := aPlayer;
   fSetup := aSetup;
   fWorkerCount := 0;
+
   fGoldMineCnt := 0;
   fIronMineCnt := 0;
   fFieldCnt := 0;
   fBuildCnt := 0;
+
   fMaxIronWeapProd := 0;
   fMaxWoodWeapProd := 0;
   fMaxSoldiersInMin := 0;
   fPeaceFactor := 0;
   fUpdatedPeaceFactor := 0;
+
   with fFarmBuildHistory do
   begin
     Count := 1;
@@ -193,15 +196,18 @@ begin
   SaveStream.WriteA('CityPredictor');
   SaveStream.Write(fOwner);
   SaveStream.Write(fWorkerCount);
+
   SaveStream.Write(fGoldMineCnt);
   SaveStream.Write(fIronMineCnt);
   SaveStream.Write(fFieldCnt);
   SaveStream.Write(fBuildCnt);
+
   SaveStream.Write(fMaxIronWeapProd);
   SaveStream.Write(fMaxWoodWeapProd);
   SaveStream.Write(fMaxSoldiersInMin);
   SaveStream.Write(fPeaceFactor);
   SaveStream.Write(fUpdatedPeaceFactor);
+
   SaveStream.Write(fFarmBuildHistory.Count);
   if (fFarmBuildHistory.Count > 0) then
   begin

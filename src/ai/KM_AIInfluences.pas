@@ -34,7 +34,7 @@ type
     fPresence: TKMWordArray; // Military presence
     fOwnership: TKMByteArray; // City mark the space around itself
 
-    fFloodFill: TKMInfluenceFloodFill;
+    fInfluenceFloodFill: TKMInfluenceFloodFill;
     fInfluenceSearch: TNavMeshInfluenceSearch;
     fNavMesh: TKMNavMesh;
 
@@ -120,14 +120,14 @@ begin
   fNavMesh := aNavMesh;
   fUpdateCityIdx := 0;
   fUpdateArmyIdx := 0;
-  fFloodFill := TKMInfluenceFloodFill.Create(False); // Check if True is better
+  fInfluenceFloodFill := TKMInfluenceFloodFill.Create(False); // Check if True is better
   fInfluenceSearch := TNavMeshInfluenceSearch.Create(False);
 end;
 
 
 destructor TKMInfluences.Destroy();
 begin
-  fFloodFill.Free;
+  fInfluenceFloodFill.Free;
   fInfluenceSearch.Free;
   inherited;
 end;
@@ -142,8 +142,8 @@ begin
   SaveStream.Write(fMapX);
   SaveStream.Write(fMapY);
   SaveStream.Write(fPolygons);
-  SaveStream.Write(fUpdateCityIdx);
-  SaveStream.Write(fUpdateArmyIdx);
+  SaveStream.Write(fUpdateCityIdx,SizeOf(fUpdateCityIdx));
+  SaveStream.Write(fUpdateArmyIdx,SizeOf(fUpdateArmyIdx));
 
   SaveStream.WriteA('AvoidBuilding');
   SaveStream.Write(fAvoidBuilding[0], SizeOf(fAvoidBuilding[0]) * Length(fAvoidBuilding));
@@ -168,12 +168,12 @@ begin
   LoadStream.Read(fMapX);
   LoadStream.Read(fMapY);
   LoadStream.Read(fPolygons);
-  LoadStream.Read(fUpdateCityIdx);
-  LoadStream.Read(fUpdateArmyIdx);
+  LoadStream.Read(fUpdateCityIdx,SizeOf(fUpdateCityIdx));
+  LoadStream.Read(fUpdateArmyIdx,SizeOf(fUpdateArmyIdx));
 
   LoadStream.ReadAssert('AvoidBuilding');
   SetLength(fAvoidBuilding, fMapY * fMapX);
-  LoadStream.Read(fAvoidBuilding[0], SizeOf(fAvoidBuilding[0]) * Length(fAvoidBuilding));
+  LoadStream.Read(fAvoidBuilding[0], SizeOf(fAvoidBuilding[0]) * fMapY * fMapX);
 
   LoadStream.ReadAssert('Ownership');
   LoadStream.Read(Len);
@@ -398,7 +398,7 @@ begin
 
     if (Cnt > 0) then
       //fFloodFill.MilitaryPresence(aPL, gAIFields.Eye.ArmyEvaluation.GroupStrength(G), MAX_DISTANCE, Cnt-1, G.GroupType, PointArr);
-      fFloodFill.MilitaryPresence(aPL, Min(G.Count,30), MAX_DISTANCE, Cnt-1, G.GroupType, PointArr);
+      fInfluenceFloodFill.MilitaryPresence(aPL, Min(G.Count,30), MAX_DISTANCE, Cnt-1, G.GroupType, PointArr);
   end;
 end;
 
@@ -599,7 +599,7 @@ begin
   end;
 
   if (Cnt > 0) then
-    fFloodFill.HouseInfluence(aPL, INIT_HOUSE_INFLUENCE, MAX_INFLUENCE_DISTANCE, Cnt - 1, IdxArray);
+    fInfluenceFloodFill.HouseInfluence(aPL, INIT_HOUSE_INFLUENCE, MAX_INFLUENCE_DISTANCE, Cnt - 1, IdxArray);
 end;
 
 

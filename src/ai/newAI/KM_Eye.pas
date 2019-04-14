@@ -1229,11 +1229,11 @@ end;
 
 
 procedure TKMBuildFF.Save(SaveStream: TKMemoryStream);
-var
-  Len: Integer;
+//var
+//  Len: Integer;
 begin
   SaveStream.WriteA('BuildFF');
-
+  {
   SaveStream.Write(fOwner);
   SaveStream.Write(fVisitIdx);
   SaveStream.Write(fVisitIdxHouse);
@@ -1253,15 +1253,16 @@ begin
   SaveStream.Write(Len);
   if (Len > 0) then
     SaveStream.Write(fInfoArr[0], SizeOf(fInfoArr[0]) * Len);
+  //}
 end;
 
 
 procedure TKMBuildFF.Load(LoadStream: TKMemoryStream);
-var
-  Len: Integer;
+//var
+//  Len: Integer;
 begin
   LoadStream.ReadAssert('BuildFF');
-
+  {
   LoadStream.Read(fOwner);
   LoadStream.Read(fVisitIdx);
   LoadStream.Read(fVisitIdxHouse);
@@ -1281,6 +1282,7 @@ begin
   SetLength(fInfoArr,Len);
   if (Len > 0) then
     LoadStream.Read(fInfoArr[0], SizeOf(fInfoArr[0]) * Len);
+  //}
 end;
 
 
