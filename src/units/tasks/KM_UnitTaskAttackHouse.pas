@@ -16,6 +16,9 @@ type
     constructor Load(LoadStream: TKMemoryStream); override;
     procedure SyncLoad; override;
     destructor Destroy; override;
+
+    property House: TKMHouse read fHouse;
+
     function WalkShouldAbandon: Boolean; override;
     function Execute: TKMTaskResult; override;
     procedure Save(SaveStream: TKMemoryStream); override;

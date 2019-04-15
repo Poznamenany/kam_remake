@@ -1868,7 +1868,6 @@ var
   GameInfo: TKMGameInfo;
   LoadedSeed: LongInt;
   SaveIsMultiplayer, IsCampaign: Boolean;
-  I: Integer;
 begin
   fSaveFile := ChangeFileExt(ExtractRelativePath(ExeDir, aPathName), EXT_SAVE_MAIN_DOT);
 
@@ -1896,7 +1895,6 @@ end;
 
 procedure TKMGame.LoadSavedReplay(aIdx: Integer; aSaveFile: UnicodeString);
 var
-  K: Integer;
   LoadStream: TKMemoryStream;
 begin
   gLog.AddTime('Loading replay from save');

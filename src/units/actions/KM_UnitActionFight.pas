@@ -27,7 +27,7 @@ type
     constructor Load(LoadStream:TKMemoryStream); override;
     destructor Destroy; override;
     function ActName: TKMUnitActionName; override;
-    function CanBeInterrupted: Boolean; override;
+    function CanBeInterrupted(aForced: Boolean = True): Boolean; override;
     function GetExplanation: UnicodeString; override;
     procedure SyncLoad; override;
     property GetOpponent: TKMUnit read fOpponent;
@@ -363,9 +363,9 @@ begin
 end;
 
 
-function TKMUnitActionFight.CanBeInterrupted: Boolean;
+function TKMUnitActionFight.CanBeInterrupted(aForced: Boolean = True): Boolean;
 begin
-  Result := TKMUnitWarrior(fUnit).IsRanged or not Locked; //Only allowed to interupt ranged fights
+  Result := (TKMUnitWarrior(fUnit).IsRanged and aForced) or not Locked; //Only allowed to interupt ranged fights
 end;
 
 

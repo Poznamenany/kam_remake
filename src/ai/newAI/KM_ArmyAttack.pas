@@ -73,6 +73,7 @@ type
     fPathPosition: TKMPoint;
     fScanPosition: TKMPoint;
     fCompanyMode: TKMCompanyMode;
+    fTargetOwner: TKMHandID;
     fTargetPoint: TKMPoint;
     fTargetHouse: TKMHouse;
     fTargetUnit: TKMUnit;
@@ -261,6 +262,7 @@ begin
     gHands.CleanUpUnitPointer(fTargetUnit); // aUnit = nil case
 end;
 
+
 procedure TAISquad.SetTargetHouse(aHouse: TKMHouse);
 begin
   if (aHouse <> nil) then
@@ -412,6 +414,7 @@ begin
 
   fCompanyMode := aCompanyMode;
   fTargetPoint := KMPOINT_ZERO;
+  fTargetOwner := -1;
   fTargetHouse := nil;
   fTargetUnit := nil;
 
@@ -444,6 +447,7 @@ begin
   LoadStream.Read(fScanPosition);
   LoadStream.Read(fCompanyMode, SizeOf(TKMCompanyMode));
   LoadStream.Read(fTargetPoint);
+  LoadStream.Read(fTargetOwner);
   LoadStream.Read(fTargetUnit, 4);
   LoadStream.Read(fTargetHouse, 4);
 
@@ -468,6 +472,7 @@ begin
   SaveStream.Write(fScanPosition);
   SaveStream.Write(fCompanyMode, SizeOf(TKMCompanyMode));
   SaveStream.Write(fTargetPoint);
+  SaveStream.Write(fTargetOwner);
   if (fTargetUnit <> nil) then
     SaveStream.Write(fTargetUnit.UID) //Store ID
   else
@@ -507,12 +512,14 @@ begin
   begin
     gHands.CleanUpUnitPointer(fTargetUnit);
     fTargetUnit := aUnit.GetUnitPointer;
+    fTargetOwner := aUnit.Owner;
     Result := True;
   end
   else if (aHouse <> nil) AND (aUnit = nil) then
   begin
     gHands.CleanUpHousePointer(fTargetHouse);
     fTargetHouse := aHouse.GetHousePointer;
+    fTargetOwner := aHouse.Owner;
     Result := True;
   end;
 end;
@@ -619,7 +626,14 @@ begin
     if not SetTarget(ClosestHouse, ClosestUnit) then
     begin
       if ActualizeTarget(fScanPosition, ClosestHouse, ClosestUnit, False) then
-        SetTarget(ClosestHouse, ClosestUnit);
+      begin
+        if not gAIFields.Supervisor.FFA
+          OR ((ClosestHouse <> nil) AND (ClosestHouse.Owner = fTargetOwner))
+          OR ((ClosestUnit <> nil) AND (ClosestUnit.Owner = fTargetOwner)) then
+          SetTarget(ClosestHouse, ClosestUnit)
+        else
+          fState := csIdle;
+      end;
     end;
   end;
 

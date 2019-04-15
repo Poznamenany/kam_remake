@@ -82,7 +82,7 @@ type
     destructor Destroy; override;
 
     function ActName: TKMUnitActionName; override;
-    function CanBeInterrupted: Boolean; override;
+    function CanBeInterrupted(aForced: Boolean = True): Boolean; override;
     function CanAbandonExternal: Boolean;
     property DoesWalking: Boolean read fDoesWalking;
     property DoingExchange: Boolean read fDoExchange; //Critical piece, must not be abandoned
@@ -1262,7 +1262,7 @@ begin
 end;
 
 
-function TKMUnitActionWalkTo.CanBeInterrupted: Boolean;
+function TKMUnitActionWalkTo.CanBeInterrupted(aForced: Boolean = True): Boolean;
 begin
   Result := CanAbandonExternal and StepDone;//Only when unit is idling during Interaction pauses
 end;

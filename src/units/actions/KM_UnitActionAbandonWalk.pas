@@ -17,7 +17,7 @@ type
     constructor Load(LoadStream: TKMemoryStream); override;
     destructor Destroy; override;
     function ActName: TKMUnitActionName; override;
-    function CanBeInterrupted: Boolean; override;
+    function CanBeInterrupted(aForced: Boolean = True): Boolean; override;
     function GetExplanation: UnicodeString; override;
     function Execute: TKMActionResult; override;
     procedure Save(SaveStream: TKMemoryStream); override;
@@ -118,7 +118,7 @@ begin
 end;
 
 
-function TKMUnitActionAbandonWalk.CanBeInterrupted: Boolean;
+function TKMUnitActionAbandonWalk.CanBeInterrupted(aForced: Boolean = True): Boolean;
 begin
   Result := StepDone and not Locked; //Abandon walk should never be abandoned, it will exit within 1 step anyway
 end;

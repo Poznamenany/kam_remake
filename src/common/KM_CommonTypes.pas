@@ -60,6 +60,9 @@ type
   TBoolIntFuncSimple = function (aValue: Integer): Boolean of object;
   TObjectIntBoolEvent = procedure (Sender: TObject; aIntValue: Integer; aBoolValue: Boolean) of object;
 
+  TAnonProc = reference to procedure;
+  TAnonBooleanFn = reference to function: Boolean;
+
   TKMAnimLoop = packed record
                   Step: array [1 .. 30] of SmallInt;
                   Count: SmallInt;

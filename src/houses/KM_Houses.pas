@@ -16,6 +16,13 @@ type
   TKMHouseFromEvent = procedure(aHouse: TKMHouse; aFrom: TKMHandID) of object;
   TKMHouseArray = array of TKMHouse;
 
+  TKMHouseSketch = class;
+
+  TKMHouseSketchType = (hstHousePlan, hstHouse);
+  TKMHouseSketchTypeSet = set of TKMHouseSketchType;
+
+  TAnonHouseSketchBoolFn = reference to function(aSketch: TKMHouseSketch): Boolean;
+
   TKMHouseAction = class
   private
     fHouse: TKMHouse;

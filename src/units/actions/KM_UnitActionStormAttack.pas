@@ -23,7 +23,7 @@ type
     constructor Load(LoadStream: TKMemoryStream); override;
     destructor Destroy; override;
     function ActName: TKMUnitActionName; override;
-    function CanBeInterrupted: Boolean; override;
+    function CanBeInterrupted(aForced: Boolean = True): Boolean; override;
     function GetExplanation: UnicodeString; override;
     function GetSpeed: Single;
     function Execute: TKMActionResult; override;
@@ -212,7 +212,7 @@ begin
 end;
 
 
-function TKMUnitActionStormAttack.CanBeInterrupted: Boolean;
+function TKMUnitActionStormAttack.CanBeInterrupted(aForced: Boolean = True): Boolean;
 begin
   Result := not Locked; //Never interupt storm attack
 end;

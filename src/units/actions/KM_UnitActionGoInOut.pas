@@ -36,7 +36,7 @@ type
     procedure SyncLoad; override;
     destructor Destroy; override;
     function ActName: TKMUnitActionName; override;
-    function CanBeInterrupted: Boolean; override;
+    function CanBeInterrupted(aForced: Boolean = True): Boolean; override;
     function GetExplanation: UnicodeString; override;
     property GetHasStarted: boolean read fHasStarted;
     property GetWaitingForPush: boolean read fWaitingForPush;
@@ -414,7 +414,7 @@ begin
 end;
 
 
-function TKMUnitActionGoInOut.CanBeInterrupted: Boolean;
+function TKMUnitActionGoInOut.CanBeInterrupted(aForced: Boolean = True): Boolean;
 begin
   Result := not Locked; //Never interupt leaving barracks
 end;

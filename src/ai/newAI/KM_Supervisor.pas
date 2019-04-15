@@ -29,6 +29,7 @@ type
 // Supervisor <-> agent relation ... cooperating AI players are just an illusion, agents does not see each other
   TKMSupervisor = class
   private
+    fFFA: Boolean;
     fPL2Alli: TKMHandByteArr;
     fAlli2PL: TKMHandIdx2Arr;
     procedure UpdateDefSupport(aTeamIdx: Byte);
@@ -44,6 +45,7 @@ type
 
     property PL2Alli: TKMHandByteArr read fPL2Alli;
     property Alli2PL: TKMHandIdx2Arr read fAlli2PL;
+    property FFA: boolean read fFFA;
 
     function FindClosestEnemies(var aPlayers: TKMHandIDArray; var aEnemyStats: TKMEnemyStatisticsArray): Boolean;
 
@@ -103,6 +105,7 @@ var
   I: Integer;
 begin
   SaveStream.WriteA('Supervisor');
+  SaveStream.Write(fFFA);
   SaveStream.Write(fPL2Alli, SizeOf(fPL2Alli));
   SaveStream.Write( Integer(Length(fAlli2PL)) );
   for I := Low(fAlli2PL) to High(fAlli2PL) do
@@ -117,6 +120,7 @@ var
   I,K: Integer;
 begin
   LoadStream.ReadAssert('Supervisor');
+  LoadStream.Read(fFFA);
   LoadStream.Read(fPL2Alli, SizeOf(fPL2Alli));
   LoadStream.Read(K);
   SetLength(fAlli2PL, K);
@@ -183,6 +187,7 @@ begin
       Inc(AlliCnt);
     end;
   SetLength(fAlli2PL, AlliCnt);
+  fFFA := AlliCnt > 2;
 end;
 
 

@@ -1414,9 +1414,9 @@ function TKMBuildFF.CanBeVisited(const aX,aY,aIdx: Word; const aHouseQueue: Bool
 begin
   // tpOwn - walkable tile + height evaluation
   if aHouseQueue then
-    Result := (fInfoArr[aIdx].Visited = fVisitIdx) AND (fInfoArr[aIdx].VisitedHouse < fVisitIdxHouse) AND (tpOwn in gTerrain.Land[aY,aX].Passability)
+    Result := (fInfoArr[aIdx].Visited = fVisitIdx) AND (fInfoArr[aIdx].VisitedHouse < fVisitIdxHouse) AND gTerrain.TileIsRoadable( KMPoint(aX,aY) ) AND (tpOwn in gTerrain.Land[aY,aX].Passability)
   else
-    Result := (fInfoArr[aIdx].Visited < fVisitIdx) AND (tpOwn in gTerrain.Land[aY,aX].Passability);
+    Result := (fInfoArr[aIdx].Visited < fVisitIdx) AND gTerrain.TileIsRoadable( KMPoint(aX,aY) );//(tpOwn in gTerrain.Land[aY,aX].Passability);
 end;
 
 

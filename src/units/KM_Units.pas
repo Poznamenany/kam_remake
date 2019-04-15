@@ -25,6 +25,7 @@ type
   protected
     fType: TKMUnitActionType;
     fUnit: TKMUnit;
+    fOnActionDone: TAnonBooleanFn;
   public
     Locked: Boolean; //Means that unit can't take part in interaction, must stay on its tile
     StepDone: Boolean; //True when single action element is done (unit walked to new tile, single attack loop done)
@@ -32,7 +33,8 @@ type
     constructor Load(LoadStream: TKMemoryStream); virtual;
     procedure SyncLoad; virtual;
 
-    function CanBeInterrupted: Boolean; virtual;
+    property OnActionDone: TAnonBooleanFn read fOnActionDone write fOnActionDone;
+    function CanBeInterrupted(aForced: Boolean = True): Boolean; virtual;
     function ActName: TKMUnitActionName; virtual; abstract;
     property ActionType: TKMUnitActionType read fType;
     function GetExplanation: UnicodeString; virtual; abstract;
@@ -61,6 +63,8 @@ type
     function WalkShouldAbandon: Boolean; dynamic;
 
     function CouldBeCancelled: Boolean; virtual;
+
+    function ObjToString(aSeparator: String = ', '): String; virtual;
 
     function Execute: TKMTaskResult; virtual; abstract;
     procedure Save(SaveStream: TKMemoryStream); virtual;
@@ -2149,9 +2153,9 @@ begin
   if fAction <> nil then
     ActStr := fAction.ClassName;
   if fTask <> nil then
-    TaskStr := fTask.ClassName;
+    TaskStr := fTask.ObjToString;
 
-  Result := Format('UID = %d%sType = %s%sAction = %s%sTask = %s%sCurrPosition = %s',
+  Result := Format('UID = %d%sType = %s%sAction = %s%sTask = [%s]%sCurrPosition = %s',
                    [fUID, aSeparator,
                     GetEnumName(TypeInfo(TKMUnitType), Integer(fType)), aSeparator,
                     ActStr, aSeparator,
@@ -2339,17 +2343,33 @@ begin
   SetCurrPosition(KMPointRound(fPositionF)); //will update FOW
 
   case fAction.Execute of
-    arActContinues: begin SetCurrPosition(KMPointRound(fPositionF)); Exit; end; //will update FOW
-    arActAborted:   begin FreeAndNil(fAction); FreeAndNil(fTask); end;
-    arActDone:      FreeAndNil(fAction);
+    arActContinues: begin
+                      SetCurrPosition(KMPointRound(fPositionF));
+                      Exit;
+                    end; //will update FOW
+    arActAborted:   begin
+                      FreeAndNil(fAction);
+                      FreeAndNil(fTask);
+                    end;
+    arActDone:      begin
+                      if Assigned(fAction.OnActionDone) then
+                      begin
+                        //Free action depends of fOnActionDone
+                        //If we created new action, then no need to free it
+                        //If we created new task then we must free it
+                        if not fAction.fOnActionDone() then
+                          FreeAndNil(fAction);
+                      end else
+                        FreeAndNil(fAction);
+                    end;
   end;
   SetCurrPosition(KMPointRound(fPositionF)); //will update FOW
 
   if fTask <> nil then
   case fTask.Execute of
     trTaskContinues:  Exit;
-    trTaskDone:       FreeAndNil(fTask);
-  end;
+      trTaskDone:       FreeAndNil(fTask);
+    end;
 
   //If we get to this point then it means that common part is done and now
   //we can perform unit-specific activities (ask for job, etc..)
@@ -2437,6 +2457,15 @@ begin
 end;
 
 
+function TKMUnitTask.ObjToString(aSeparator: String = ', '): String;
+begin
+  Result := Format('Type %s%sPhase = %d%sPhase2 = %d',
+                   [GetEnumName(TypeInfo(TKMUnitTaskType), Integer(fType)), aSeparator,
+                    fPhase, aSeparator,
+                    fPhase2]);
+end;
+
+
 procedure TKMUnitTask.Save(SaveStream: TKMemoryStream);
 begin
   SaveStream.Write(fType, SizeOf(fType)); //Save task type before anything else for it will be used on loading to create specific task type
@@ -2497,7 +2526,7 @@ begin
 end;
 
 
-function TKMUnitAction.CanBeInterrupted: Boolean;
+function TKMUnitAction.CanBeInterrupted(aForced: Boolean = True): Boolean;
 begin
   Result := True;
 end;

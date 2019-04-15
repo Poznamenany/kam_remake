@@ -1359,9 +1359,12 @@ end;
 procedure TRenderPool.RenderWireHousePlan(const P: TKMPoint; aHouseType: TKMHouseType);
 var
   I: Integer;
+  ShowHMarksIgnoreFOW: Boolean;
 begin
   fMarksList.Clear;
-  gMySpectator.Hand.GetHouseMarks(P, aHouseType, fMarksList);
+  //Show house marks ignoring player FOW if we can see all map in replay/spec
+  ShowHMarksIgnoreFOW := gGame.IsReplayOrSpectate and (gMySpectator.FOWIndex = -1);
+  gMySpectator.Hand.GetHouseMarks(P, aHouseType, fMarksList, ShowHMarksIgnoreFOW);
 
   for I := 0 to fMarksList.Count - 1 do
   if fMarksList.Tag[I] = TC_OUTLINE then

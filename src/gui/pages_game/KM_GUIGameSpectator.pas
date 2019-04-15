@@ -99,7 +99,6 @@ type
   end;
 
   // Buildings
-
   TKMGUIGameSpectatorItemLineCustomBuildings = class(TKMGUIGameSpectatorItemLine)
   private
     fHouseSketch: TKMHouseSketchEdit;
@@ -111,21 +110,24 @@ type
     function GetTagCount: Integer; override;
     function GetTag(AIndex: Integer): Integer; override;
     function GetLoc(AHandIndex: Integer; ATag: Integer): TKMPointF; override;
+    function GetVerifyHouseSketchFn: TAnonHouseSketchBoolFn; virtual; abstract;
   public
     constructor Create(aParent: TKMPanel; AHandIndex: Integer; aOnJumpToPlayer: TIntegerEvent; aSetViewportPos: TPointFEvent); override;
     destructor Destroy; override;
   end;
 
-  TKMGUIGameSpectatorItemLineBuild = class(TKMGUIGameSpectatorItemLineCustomBuildings)
+  TKMGUIGameSpectatorItemLineConstructing = class(TKMGUIGameSpectatorItemLineCustomBuildings)
   protected
     function GetValue(AHandIndex: Integer; ATag: Integer): String; override;
     function GetProgress(AHandIndex: Integer; ATag: Integer): Single; override;
+    function GetVerifyHouseSketchFn: TAnonHouseSketchBoolFn; override;
   end;
 
-  TKMGUIGameSpectatorItemLineBuildings = class(TKMGUIGameSpectatorItemLineCustomBuildings)
+  TKMGUIGameSpectatorItemLineHouses = class(TKMGUIGameSpectatorItemLineCustomBuildings)
   protected
     function GetValue(AHandIndex: Integer; ATag: Integer): String; override;
     function GetAdditionalValue(AHandIndex: Integer; ATag: Integer): String; override;
+    function GetVerifyHouseSketchFn: TAnonHouseSketchBoolFn; override;
   end;
 
   // Units
@@ -500,7 +502,7 @@ begin
 
   HT := TKMHouseType(ATag);
 
-  gHands[AHandIndex].GetNextHouseWSameType(HT, fLastHouseUIDs[HT], fHouseSketch, True);
+  gHands[AHandIndex].GetNextHouseWSameType(HT, fLastHouseUIDs[HT], fHouseSketch, [hstHouse, hstHousePlan], GetVerifyHouseSketchFn());
   if not fHouseSketch.IsEmpty  then
   begin
     gMySpectator.Highlight := fHouseSketch;
@@ -510,7 +512,7 @@ begin
 end;
 
 { TKMGUIGameSpectatorItemLineBuild }
-function TKMGUIGameSpectatorItemLineBuild.GetValue(AHandIndex: Integer; ATag: Integer): String;
+function TKMGUIGameSpectatorItemLineConstructing.GetValue(AHandIndex: Integer; ATag: Integer): String;
 var
   Value: Integer;
 begin
@@ -518,7 +520,7 @@ begin
   Result := IfThen(Value > 0, IntToStr(Value), '');
 end;
 
-function TKMGUIGameSpectatorItemLineBuild.GetProgress(AHandIndex: Integer; ATag: Integer): Single;
+function TKMGUIGameSpectatorItemLineConstructing.GetProgress(AHandIndex: Integer; ATag: Integer): Single;
 var
   i: Integer;
   House, HouseProgress: TKMHouse;
@@ -541,8 +543,16 @@ begin
     Result := HouseProgress.BuildingProgress / HouseProgress.MaxHealth;
 end;
 
+function TKMGUIGameSpectatorItemLineConstructing.GetVerifyHouseSketchFn: TAnonHouseSketchBoolFn;
+begin
+  Result := function(aSketch: TKMHouseSketch): Boolean
+    begin
+      Result := not (aSketch is TKMHouse) or not TKMHouse(aSketch).IsComplete;
+    end;
+end;
+
 { TKMGUIGameSpectatorItemLineBuildings }
-function TKMGUIGameSpectatorItemLineBuildings.GetValue(AHandIndex: Integer; ATag: Integer): String;
+function TKMGUIGameSpectatorItemLineHouses.GetValue(AHandIndex: Integer; ATag: Integer): String;
 var
   Value: Integer;
 begin
@@ -550,12 +560,20 @@ begin
   Result := IfThen(Value > 0, IntToStr(Value), '');
 end;
 
-function TKMGUIGameSpectatorItemLineBuildings.GetAdditionalValue(AHandIndex: Integer; ATag: Integer): String;
+function TKMGUIGameSpectatorItemLineHouses.GetAdditionalValue(AHandIndex: Integer; ATag: Integer): String;
 var
   Value: Integer;
 begin
   Value := gHands[AHandIndex].Stats.GetHouseWip(TKMHouseType(ATag));
   Result := IfThen(Value > 0, '+' + IntToStr(Value), '');
+end;
+
+function TKMGUIGameSpectatorItemLineHouses.GetVerifyHouseSketchFn: TAnonHouseSketchBoolFn;
+begin
+  Result := function(aSketch: TKMHouseSketch): Boolean
+    begin
+      Result := True;
+    end;
 end;
 
 
@@ -703,8 +721,8 @@ begin
   AddLineType(0, nil);
   AddLineType(1, TKMGUIGameSpectatorItemLineResources);
   AddLineType(2, TKMGUIGameSpectatorItemLineWarFare);
-  AddLineType(3, TKMGUIGameSpectatorItemLineBuildings);
-  AddLineType(4, TKMGUIGameSpectatorItemLineBuild);
+  AddLineType(3, TKMGUIGameSpectatorItemLineHouses);
+  AddLineType(4, TKMGUIGameSpectatorItemLineConstructing);
   AddLineType(5, TKMGUIGameSpectatorItemLinePopulation);
   AddLineType(6, TKMGUIGameSpectatorItemLineArmyInstantenious);
   AddLineType(7, TKMGUIGameSpectatorItemLineArmyTotal);

@@ -192,7 +192,8 @@ procedure TKMSpectator.UpdateNewSelected;
 var
   TmpSelected: TObject;
 begin
-  TmpSelected := Selected; //We do not want to change Selected object actually, just update fIsSelectedMyObj field is good enought
+  //We do not want to change Selected object actually, just update fIsSelectedMyObj field is good enought
+  TmpSelected := Selected;
   UpdateNewSelected(TmpSelected);
 end;
 
@@ -201,6 +202,9 @@ procedure TKMSpectator.UpdateNewSelected(var aNewSelected: TObject; aAllowSelect
 var
   OwnerIndex: TKMHandID;
 begin
+  if gGame.GameMode in [gmMultiSpectate, gmMapEd, gmReplaySingle, gmReplayMulti] then
+    Exit;
+
   OwnerIndex := GetGameObjectOwnerIndex(aNewSelected);
   if OwnerIndex <> -1 then
   begin
@@ -229,8 +233,7 @@ begin
   NewSelected := gHands.GetUnitByUID(gGameCursor.ObjectUID);
 
   //In-game player can select only own and ally Units
-  if not (gGame.GameMode in [gmMultiSpectate, gmMapEd, gmReplaySingle, gmReplayMulti]) then
-    UpdateNewSelected(NewSelected);
+  UpdateNewSelected(NewSelected);
 
   //Don't allow the player to select dead units
   if ((NewSelected is TKMUnit) and TKMUnit(NewSelected).IsDeadOrDying)
@@ -241,9 +244,7 @@ begin
   if NewSelected is TKMUnitWarrior then
   begin
     NewSelected := gHands.GetGroupByMember(TKMUnitWarrior(NewSelected));
-
-    if not (gGame.GameMode in [gmMultiSpectate, gmMapEd, gmReplaySingle, gmReplayMulti]) then
-      UpdateNewSelected(NewSelected);
+    UpdateNewSelected(NewSelected);
   end;
 
   //Update selected groups selected unit
@@ -256,8 +257,7 @@ begin
     NewSelected := gHands.HousesHitTest(gGameCursor.Cell.X, gGameCursor.Cell.Y);
 
     //In-game player can select only own and ally Units
-    if not (gGame.GameMode in [gmMultiSpectate, gmMapEd, gmReplaySingle, gmReplayMulti]) then
-      UpdateNewSelected(NewSelected, True);
+    UpdateNewSelected(NewSelected, True);
 
     //Don't allow the player to select destroyed houses
     if (NewSelected is TKMHouse) and TKMHouse(NewSelected).IsDestroyed then

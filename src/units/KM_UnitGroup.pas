@@ -124,6 +124,7 @@ type
     function  HasMember(aWarrior: TKMUnit): Boolean;
     procedure ResetAnimStep;
     function InFight(aCountCitizens: Boolean = False): Boolean; //Fighting and can't take any orders from player
+    function InFightAllMembers(aCountCitizens: Boolean = False): Boolean; //Fighting and can't take any orders from player
     function InFightAgaistGroups(var aGroupArray: TKMUnitGroupArray): Boolean; //Fighting agaist specific groups
     function IsAttackingHouse: Boolean; //Attacking house
     function IsAttackingUnit: Boolean;
@@ -165,21 +166,22 @@ type
     procedure SetOwner(aOwner: TKMHandID);
     procedure OwnerUpdate(aOwner: TKMHandID; aMoveToNewOwner: Boolean = False);
 
-    procedure OrderAttackHouse(aHouse: TKMHouse; aClearOffenders: Boolean);
-    procedure OrderAttackUnit(aUnit: TKMUnit; aClearOffenders: Boolean);
+    procedure OrderAttackHouse(aHouse: TKMHouse; aClearOffenders: Boolean; aForced: Boolean = True);
+    procedure OrderAttackUnit(aUnit: TKMUnit; aClearOffenders: Boolean; aForced: Boolean = True);
     procedure OrderFood(aClearOffenders: Boolean; aHungryOnly: Boolean = False);
     procedure OrderFormation(aTurnAmount: TKMTurnDirection; aColumnsChange: ShortInt; aClearOffenders: Boolean);
-    procedure OrderHalt(aClearOffenders: Boolean);
+    procedure OrderHalt(aClearOffenders: Boolean; aForced: Boolean = True);
     procedure OrderLinkTo(aTargetGroup: TKMUnitGroup; aClearOffenders: Boolean);
     procedure OrderNone;
     function OrderSplit(aClearOffenders: Boolean; aSplitSingle: Boolean = False): TKMUnitGroup;
     function OrderSplitUnit(aUnit: TKMUnit; aClearOffenders: Boolean): TKMUnitGroup;
     procedure OrderSplitLinkTo(aGroup: TKMUnitGroup; aCount: Word; aClearOffenders: Boolean);
     procedure OrderStorm(aClearOffenders: Boolean);
-    procedure OrderWalk(const aLoc: TKMPoint; aClearOffenders: Boolean; aOrderWalkKind: TKMOrderWalkKind; aDir: TKMDirection = dirNA);
+    procedure OrderWalk(const aLoc: TKMPoint; aClearOffenders: Boolean; aOrderWalkKind: TKMOrderWalkKind;
+                        aDir: TKMDirection = dirNA; aForced: Boolean = True);
 
-    procedure OrderRepeat;
-    procedure CopyOrderFrom(aGroup: TKMUnitGroup);
+    procedure OrderRepeat(aForced: Boolean = True);
+    procedure CopyOrderFrom(aGroup: TKMUnitGroup; aUpdateOrderLoc: Boolean; aForced: Boolean = True);
 
     procedure KillGroup;
 
@@ -759,7 +761,7 @@ begin
 
   //Only repeat the order if we are not in a fight (since bowmen can still take orders when fighting)
   if not IsDead and CanTakeOrders and not InFight then
-    OrderRepeat;
+    OrderRepeat(False);
 end;
 
 
@@ -957,18 +959,31 @@ begin
 end;
 
 
+//Check if at least 1 group member is fighting
 //Fighting with citizens does not count by default
 function TKMUnitGroup.InFight(aCountCitizens: Boolean = False): Boolean;
-var I: Integer;
+var
+  I: Integer;
 begin
   Result := False;
 
   for I := 0 to Count - 1 do
-  if Members[I].InFight(aCountCitizens) then
-  begin
-    Result := True;
-    Exit;
-  end;
+    if Members[I].InFight(aCountCitizens) then
+      Exit(True);
+end;
+
+
+//Check if all group members are fighting
+//Fighting with citizens does not count by default
+function TKMUnitGroup.InFightAllMembers(aCountCitizens: Boolean = False): Boolean;
+var
+  I: Integer;
+begin
+  Result := True;
+
+  for I := 0 to Count - 1 do
+    if not Members[I].InFight(aCountCitizens) then
+      Exit(False);
 end;
 
 
@@ -989,19 +1004,22 @@ begin
       AND not U.IsDeadOrDying then
     begin
       G := gHands[ U.Owner ].UnitGroups.GetGroupByMember( TKMUnitWarrior(U) );
-      Check := True;
-      for K := 0 to Cnt - 1 do
-        if (aGroupArray[K] = G) then
-        begin
-          Check := False;
-          break;
-        end;
-      if Check then
+      if (G <> nil) then // Group can be nil if soldiers go out of Barracks
       begin
-        if (Length(aGroupArray) >= Cnt) then
-          SetLength(aGroupArray, Cnt + 12);
-        aGroupArray[Cnt] := G;
-        Cnt := Cnt + 1;
+        Check := True;
+        for K := 0 to Cnt - 1 do
+          if (aGroupArray[K] = G) then
+          begin
+            Check := False;
+            break;
+          end;
+        if Check then
+        begin
+          if (Length(aGroupArray) >= Cnt) then
+            SetLength(aGroupArray, Cnt + 12);
+          aGroupArray[Cnt] := G;
+          Cnt := Cnt + 1;
+        end;
       end;
     end;
   end;
@@ -1124,7 +1142,7 @@ end;
 
 
 //All units are assigned TTaskAttackHouse which does everything for us (move to position, hit house, abandon, etc.)
-procedure TKMUnitGroup.OrderAttackHouse(aHouse: TKMHouse; aClearOffenders: Boolean);
+procedure TKMUnitGroup.OrderAttackHouse(aHouse: TKMHouse; aClearOffenders: Boolean; aForced: Boolean = True);
 var
   I: Integer;
 begin
@@ -1140,14 +1158,14 @@ begin
   OrderTargetHouse := aHouse;
 
   for I := 0 to Count - 1 do
-    Members[I].OrderAttackHouse(aHouse);
+    Members[I].OrderAttackHouse(aHouse, aForced);
 
   //Script may have additional event processors
   gScriptEvents.ProcGroupOrderAttackHouse(Self, aHouse);
 end;
 
 
-procedure TKMUnitGroup.OrderAttackUnit(aUnit: TKMUnit; aClearOffenders: Boolean);
+procedure TKMUnitGroup.OrderAttackUnit(aUnit: TKMUnit; aClearOffenders: Boolean; aForced: Boolean = True);
 var
   I: Integer;
   NodeList: TKMPointList;
@@ -1204,17 +1222,17 @@ begin
       //Check target in range, and if not - chase it / back up from it
       P := GetMemberLoc(I);
       if not KMSamePoint(Members[I].CurrPosition, P.Loc)
-      and((KMLength(Members[I].NextPosition, OrderTargetUnit.CurrPosition) > Members[I].GetFightMaxRange)
-       or (KMLength(Members[I].NextPosition, OrderTargetUnit.CurrPosition) < Members[I].GetFightMinRange)) then
+        and((KMLength(Members[I].NextPosition, OrderTargetUnit.CurrPosition) > Members[I].GetFightMaxRange)
+        or (KMLength(Members[I].NextPosition, OrderTargetUnit.CurrPosition) < Members[I].GetFightMinRange)) then
       begin
         //Too far/close. Walk to the enemy in formation
-        Members[I].OrderWalk(P.Loc, P.Exact);
+        Members[I].OrderWalk(P.Loc, P.Exact, aForced);
         Members[I].FaceDir := fOrderLoc.Dir;
       end
       else
         if not Members[I].IsIdle then
         begin
-          Members[I].OrderWalk(Members[I].NextPosition, True); //We are at the right spot already, just need to abandon what we are doing
+          Members[I].OrderWalk(Members[I].NextPosition, True, aForced); //We are at the right spot already, just need to abandon what we are doing
           Members[I].FaceDir := fOrderLoc.Dir;
         end
         else
@@ -1233,7 +1251,7 @@ begin
   begin
     //Walk in formation towards enemy,
     //Members will take care of attack when we approach
-    OrderWalk(aUnit.NextPosition, False, wtokNone);
+    OrderWalk(aUnit.NextPosition, False, wtokNone, dirNA, aForced);
 
     //Revert Order to proper one (we disguise Walk)
     fOrder := goAttackUnit;
@@ -1281,7 +1299,7 @@ end;
 
 
 //Forcefull termination of any activity
-procedure TKMUnitGroup.OrderHalt(aClearOffenders: Boolean);
+procedure TKMUnitGroup.OrderHalt(aClearOffenders: Boolean; aForced: Boolean = True);
 begin
   if aClearOffenders and CanTakeOrders then
     ClearOffenders;
@@ -1290,13 +1308,13 @@ begin
   //hose target depends on previous activity
   case fOrder of
     goNone:         if not KMSamePoint(fOrderLoc.Loc, KMPOINT_ZERO) then
-                      OrderWalk(fOrderLoc.Loc, False, wtokHaltOrder)
+                      OrderWalk(fOrderLoc.Loc, False, wtokHaltOrder, dirNA, aForced)
                     else
-                      OrderWalk(Members[0].NextPosition, False, wtokHaltOrder);
-    goWalkTo:       OrderWalk(Members[0].NextPosition, False, wtokHaltOrder);
-    goAttackHouse:  OrderWalk(Members[0].NextPosition, False, wtokHaltOrder);
-    goAttackUnit:   OrderWalk(Members[0].NextPosition, False, wtokHaltOrder);
-    goStorm:        OrderWalk(Members[0].NextPosition, False, wtokHaltOrder);
+                      OrderWalk(Members[0].NextPosition, False, wtokHaltOrder, dirNA, aForced);
+    goWalkTo:       OrderWalk(Members[0].NextPosition, False, wtokHaltOrder, dirNA, aForced);
+    goAttackHouse:  OrderWalk(Members[0].NextPosition, False, wtokHaltOrder, dirNA, aForced);
+    goAttackUnit:   OrderWalk(Members[0].NextPosition, False, wtokHaltOrder, dirNA, aForced);
+    goStorm:        OrderWalk(Members[0].NextPosition, False, wtokHaltOrder, dirNA, aForced);
   end;
 end;
 
@@ -1340,7 +1358,7 @@ begin
   end;
 
   //Repeat targets group order to newly linked members
-  aTargetGroup.OrderRepeat;
+  aTargetGroup.OrderRepeat(False);
 
   //Script may have additional event processors
   gScriptEvents.ProcGroupOrderLink(Self, aTargetGroup);
@@ -1361,34 +1379,45 @@ end;
 
 
 //Copy order from specified aGroup
-procedure TKMUnitGroup.CopyOrderFrom(aGroup: TKMUnitGroup);
+procedure TKMUnitGroup.CopyOrderFrom(aGroup: TKMUnitGroup; aUpdateOrderLoc: Boolean; aForced: Boolean = True);
 begin
   fOrder := aGroup.fOrder;
-  if fOrder <> goNone then          //when there is no order, then use own fOrderLoc
-    fOrderLoc := aGroup.fOrderLoc;  //otherwise - copy from target group
+
+  if aUpdateOrderLoc then
+  begin
+    //Get leader current position as order loc if there is no order
+    if (fOrder = goNone) then
+      fOrderLoc := KMPointDir(FlagBearer.CurrPosition, aGroup.fOrderLoc.Dir)
+    else
+      fOrderLoc := aGroup.fOrderLoc;  //otherwise - copy from target group
+  end;
 
   fOrderWalkKind := wtokNone;
   if fOrder = goWalkTo then
     fOrderWalkKind := aGroup.fOrderWalkKind;
 
   case fOrder of
-    goNone:         OrderHalt(False);
-    goWalkTo:       OrderWalk(fOrderLoc.Loc, False, fOrderWalkKind);
-    goAttackHouse:  if aGroup.OrderTargetHouse <> nil then OrderAttackHouse(aGroup.OrderTargetHouse, False);
-    goAttackUnit:   if aGroup.OrderTargetUnit <> nil then OrderAttackUnit(aGroup.OrderTargetUnit, False);
+    goNone:         OrderHalt(False, aForced);
+    goWalkTo:       OrderWalk(fOrderLoc.Loc, False, fOrderWalkKind, dirNA, aForced);
+    goAttackHouse:  if aGroup.OrderTargetHouse <> nil then
+                      OrderAttackHouse(aGroup.OrderTargetHouse, False, aForced);
+    goAttackUnit:   if aGroup.OrderTargetUnit <> nil then
+                      OrderAttackUnit(aGroup.OrderTargetUnit, False, aForced);
     goStorm:        ;
   end;
 end;
 
 
 //Repeat last order e.g. if new members have joined
-procedure TKMUnitGroup.OrderRepeat;
+procedure TKMUnitGroup.OrderRepeat(aForced: Boolean = True);
 begin
   case fOrder of
-    goNone:         OrderHalt(False);
-    goWalkTo:       OrderWalk(fOrderLoc.Loc, False, fOrderWalkKind);
-    goAttackHouse:  if OrderTargetHouse <> nil then OrderAttackHouse(OrderTargetHouse, False);
-    goAttackUnit:   if OrderTargetUnit <> nil then OrderAttackUnit(OrderTargetUnit, False);
+    goNone:         OrderHalt(False, aForced);
+    goWalkTo:       OrderWalk(fOrderLoc.Loc, False, fOrderWalkKind, dirNA, aForced);
+    goAttackHouse:  if OrderTargetHouse <> nil then
+                      OrderAttackHouse(OrderTargetHouse, False, aForced);
+    goAttackUnit:   if OrderTargetUnit <> nil then
+                      OrderAttackUnit(OrderTargetUnit, False, aForced);
     goStorm:        ;
   end;
 end;
@@ -1401,7 +1430,7 @@ var
   I: Integer;
   NewGroup: TKMUnitGroup;
   NewLeader: TKMUnitWarrior;
-  MultipleTypes: Boolean;
+  MultipleTypes, ChangeNewGroupOrderLoc: Boolean;
   U: TKMUnit;
 begin
   Result := nil;
@@ -1470,12 +1499,18 @@ begin
   //If we are hungry then don't repeat message each time we split, give new commander our counter
   NewGroup.fTimeSinceHungryReminder := fTimeSinceHungryReminder;
 
-  //Commander OrderLoc must always be valid, but because this guy wasn't a commander it might not be
-  NewGroup.fOrderLoc := KMPointDir(NewLeader.CurrPosition, fOrderLoc.Dir);
+  ChangeNewGroupOrderLoc := True; //Update Order loc by default
+  //For walk order our new leader was going to some loc, and we want this loc to be our new fOrderLoc for new group
+  if (fOrder = goWalkTo)
+    and (NewLeader.Action is TKMUnitActionWalkTo) then
+  begin
+    NewGroup.fOrderLoc := KMPointDir(TKMUnitActionWalkTo(NewLeader.Action).WalkTo, fOrderLoc.Dir);
+    ChangeNewGroupOrderLoc := False; //Do not update order loc since we set it already
+  end;
 
   //Tell both groups to reposition
-  OrderRepeat;
-  NewGroup.CopyOrderFrom(Self);
+  OrderRepeat(False);
+  NewGroup.CopyOrderFrom(Self, ChangeNewGroupOrderLoc, False);
 
   Result := NewGroup; //Return the new group in case somebody is interested in it
 
@@ -1578,7 +1613,8 @@ begin
 end;
 
 
-procedure TKMUnitGroup.OrderWalk(const aLoc: TKMPoint; aClearOffenders: Boolean; aOrderWalkKind: TKMOrderWalkKind; aDir: TKMDirection = dirNA);
+procedure TKMUnitGroup.OrderWalk(const aLoc: TKMPoint; aClearOffenders: Boolean; aOrderWalkKind: TKMOrderWalkKind;
+                                 aDir: TKMDirection = dirNA; aForced: Boolean = True);
 var
   I: Integer;
   NewDir: TKMDirection;
@@ -1611,7 +1647,7 @@ begin
   for I := 0 to Count - 1 do
   begin
     P := GetMemberLoc(I);
-    Members[I].OrderWalk(P.Loc, P.Exact);
+    Members[I].OrderWalk(P.Loc, P.Exact, aForced);
     Members[I].FaceDir := NewDir;
   end;
 end;
@@ -1881,6 +1917,8 @@ end;
 
 
 procedure TKMUnitGroup.UpdateState;
+var
+  NeedCheckOrderDone: Boolean;
 begin
   Inc(fTicker);
   if IsDead then Exit;
@@ -1893,7 +1931,18 @@ begin
   if fTicker mod 5 = 0 then
     CheckForFight;
 
-  if not InFight and (fTicker mod 7 = 0) then
+  NeedCheckOrderDone := (fTicker mod 7 = 0);
+  if NeedCheckOrderDone then
+  begin
+    if IsRanged then
+      //Ranged units could be partially in fight
+      //That could cause wrong unit direction, check it in further CheckOrderDone
+      NeedCheckOrderDone := not InFightAllMembers
+    else
+      NeedCheckOrderDone := not InFight;
+  end;
+
+  if NeedCheckOrderDone then
     CheckOrderDone;
 end;
 
@@ -2060,7 +2109,7 @@ begin
                      //but don't change formation if player decided to set it manually
                      if not Result.ManualFormation then
                        Result.UnitsPerRow := Ceil(Sqrt(Result.Count));
-                     Result.OrderRepeat;
+                     Result.OrderRepeat(False);
                    end
                    else
                    begin
