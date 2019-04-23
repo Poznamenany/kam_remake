@@ -95,6 +95,7 @@ var
 
   //These are debug things, should be False
   {AI}
+  SP_BOOST_AI_BUILD       :Boolean = True;  // Boost build process of AI
   SP_DEFAULT_ADVANCED_AI  :Boolean = False; //Set advanced AI as default for SP games
   SP_DEFAULT_PEACETIME    :Integer = 70;    //Default peacetime for SP games when SP_DEFAULT_ADVANCED_AI set to True
   {User interface options}
