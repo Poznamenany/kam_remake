@@ -7,8 +7,9 @@ uses
   KM_CityPredictor, KM_CityBuilder, KM_CityPlanner, KM_AIArmyEvaluation;
 
 var
-  GA_MANAGER_CheckUnitCount_SerfCoef    : Single = 1.42; //0.193077
-  GA_MANAGER_CheckUnitCount_SerfLimit   : Single = 1.432; //2.178943
+  GA_MANAGEMENT_CheckUnitCount_SerfCoef    : Single = 1.2588; //0.193077
+  GA_MANAGEMENT_CheckUnitCount_SerfLimit   : Single = 1; //2.178943
+
 
 type
   TKMWarfareArr = array[WARFARE_MIN..WARFARE_MAX] of record
@@ -136,7 +137,7 @@ begin
   if SP_DEFAULT_ADVANCED_AI then
   begin
     //SetKaMSeed(773852237);
-    //gGame.GameOptions.Peacetime := 60;//SP_DEFAULT_PEACETIME;
+    gGame.GameOptions.Peacetime := 70;//SP_DEFAULT_PEACETIME;
     fSetup.EnableAdvancedAI(True);
     //fSetup.EnableAdvancedAI(fOwner <= 3);
   end;
@@ -235,8 +236,8 @@ var
          AND (P.Units[I].IsIdle) then
         Cnt := Cnt + 1;
     // Increase count of serfs carefully (compute fraction of serfs who does not have job)
-    if (Cnt < GA_MANAGER_CheckUnitCount_SerfLimit)
-       AND (Cnt / (Serfs*1.0) < GA_MANAGER_CheckUnitCount_SerfCoef) then
+    if (Cnt < GA_MANAGEMENT_CheckUnitCount_SerfLimit)
+       AND (Cnt / (Serfs*1.0) < GA_MANAGEMENT_CheckUnitCount_SerfCoef) then
       Result := Max( 1 + Byte(Serfs < 40) + Byte(Serfs < 60), Result);
   end;
 

@@ -72,9 +72,9 @@ var
   val1 : TKMDefEval absolute aElem1;
   val2 : TKMDefEval absolute aElem2;
 begin
-  if (val1.Val = val2.Val) then      Result := 0
+  if      (val1.Val = val2.Val) then Result :=  0
   else if (val1.Val < val2.Val) then Result := -1
-  else                               Result := 1;
+  else                               Result := +1;
 end;
 
 function CompareMines(const aElem1, aElem2): Integer;
@@ -82,9 +82,9 @@ var
   val1 : TKMMineEval absolute aElem1;
   val2 : TKMMineEval absolute aElem2;
 begin
-  if (val1.Val = val2.Val) then      Result := 0
+  if      (val1.Val = val2.Val) then Result :=  0
   else if (val1.Val < val2.Val) then Result := -1
-  else                               Result := 1;
+  else                               Result := +1;
 end;
 
 
@@ -534,7 +534,7 @@ procedure TKMSupervisor.DivideResources();
   const
     MAX_INFLUENCE = 256;
   var
-    I, IdxPL, IdxPL2, Cnt, PLCnt, BestPrice: Integer;
+    K, IdxPL, IdxPL2, Cnt, PLCnt, BestPrice: Integer;
     PL: TKMHandID;
     PLMines,PLPossibleMines: TKMWordArray;
     Mines: TKMMineEvalArr;
@@ -548,22 +548,22 @@ procedure TKMSupervisor.DivideResources();
     // Get only mines in influence of alliance
     Cnt := 0;
     SetLength(Mines, Length(aMines));
-    for I := Length(aMines) - 1 downto 0 do
+    for K := Length(aMines) - 1 downto 0 do
     begin
       // Evaluate point if there can be mine (in dependence on influence)
-      PL := gAIFields.Influences.GetBestOwner(aMines[I].X,aMines[I].Y);
+      PL := gAIFields.Influences.GetBestOwner(aMines[K].X,aMines[K].Y);
       for IdxPL := 0 to Length(aPlayers) - 1 do
         if (PL = aPlayers[IdxPL]) then
         begin
           PLCnt := 0;
           for IdxPL2 := 0 to Length(aPlayers) - 1 do // Mark players which can place mine here (by influence)
-            if (gAIFields.Influences.Ownership[aPlayers[IdxPL2], aMines[I].Y,aMines[I].X] > 0) then
+            if (gAIFields.Influences.Ownership[aPlayers[IdxPL2], aMines[K].Y,aMines[K].X] > 0) then
             begin
               Inc(PLPossibleMines[IdxPL2]);
               Inc(PLCnt);
             end;
-          Mines[Cnt].Val := PLCnt * MAX_INFLUENCE + gAIFields.Influences.Ownership[PL, aMines[I].Y,aMines[I].X];
-          Mines[Cnt].pPoint := @aMines[I];
+          Mines[Cnt].Val := PLCnt * MAX_INFLUENCE + gAIFields.Influences.Ownership[PL, aMines[K].Y,aMines[K].X];
+          Mines[Cnt].pPoint := @aMines[K];
           Inc(Cnt);
         end;
     end;
@@ -572,12 +572,12 @@ procedure TKMSupervisor.DivideResources();
       // Sort mines by evaluation
       Sort(Mines[0], Low(Mines), Cnt-1, sizeof(Mines[0]), CompareMines);
       // Distribute mines by evaluation and possible mine cnt per a player
-      for I := 0 to Cnt - 1 do // Lower index = less players can own this mine
+      for K := 0 to Cnt - 1 do // Lower index = less players can own this mine
       begin
         IdxPL2 := 0;
         BestPrice := High(Word);
         for IdxPL := 0 to Length(aPlayers) - 1 do
-          if (gAIFields.Influences.Ownership[aPlayers[IdxPL], Mines[I].pPoint^.Y, Mines[I].pPoint^.X] > 0)
+          if (gAIFields.Influences.Ownership[aPlayers[IdxPL], Mines[K].pPoint^.Y, Mines[K].pPoint^.X] > 0)
             AND (PLPossibleMines[IdxPL] + PLMines[IdxPL] < BestPrice) then
           begin
             BestPrice := PLPossibleMines[IdxPL] + PLMines[IdxPL];
@@ -588,7 +588,7 @@ procedure TKMSupervisor.DivideResources();
           Inc(PLMines[IdxPL2]);
           // Decrease possible mine cnt
           for IdxPL2 := 0 to Length(aPlayers) - 1 do
-            if (gAIFields.Influences.Ownership[aPlayers[IdxPL2], Mines[I].pPoint^.Y, Mines[I].pPoint^.X] > 0) then
+            if (gAIFields.Influences.Ownership[aPlayers[IdxPL2], Mines[K].pPoint^.Y, Mines[K].pPoint^.X] > 0) then
               Dec(PLPossibleMines[IdxPL2]);
         end;
       end;

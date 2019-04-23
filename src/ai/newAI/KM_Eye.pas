@@ -12,14 +12,24 @@ const
   MIN_SCAN_DIST_FROM_HOUSE = 2; // Houses must have at least 1 tile of space between them
 
 var
-  GA_EYE_GetForests_MaxAB          : Single = 149;
-  GA_EYE_GetForests_SPRndOwnLimMin : Single = 100;
-  GA_EYE_GetForests_SPRndOwnLimMax : Single = 135;
-  GA_EYE_GetForests_RndCount       : Single =  10;
-  GA_EYE_GetForests_RndLimit       : Single =   0.9;
-  GA_EYE_GetForests_MinTrees       : Single =   3;
-  GA_EYE_GetForests_Radius         : Single =   6.3;
-  GA_EYE_GetForests_MinRndSoil     : Single = 60; // 0-81
+{
+  GA_EYE_GetForests_MaxAB          : Single =  95; // <0,201> Ignore trees in existing forest <0,255-AVOID_BUILDING_FOREST_MINIMUM)
+  GA_EYE_GetForests_MinTrees       : Single =   3; // Min trees in forest
+  GA_EYE_GetForests_Radius         : Single =   6; // Forest radius
+  GA_EYE_GetForests_MinRndSoil     : Single =  60; // 0-82
+  GA_EYE_GetForests_SPRndOwnLimMin : Single = 100; // Minimum influence of potential forest
+  GA_EYE_GetForests_SPRndOwnLimMax : Single = 135; // Maximum influence of potential forest
+  GA_EYE_GetForests_RndCount       : Single =  10; // Minimum count of potential forest
+  GA_EYE_GetForests_RndLimit       : Single =   0.9; // Random limit for forest plan
+}
+  GA_EYE_GetForests_MaxAB          : Single =  21; // <0,201> Ignore trees in existing forest <0,255-AVOID_BUILDING_FOREST_MINIMUM)
+  GA_EYE_GetForests_MinTrees       : Single =   2; // Min trees in forest
+  GA_EYE_GetForests_Radius         : Single =   4; // Forest radius
+  GA_EYE_GetForests_MinRndSoil     : Single =  34; // 0-82
+  GA_EYE_GetForests_SPRndOwnLimMin : Single =  33; // Minimum influence of potential forest
+  GA_EYE_GetForests_SPRndOwnLimMax : Single = 143; // Maximum influence of potential forest
+  GA_EYE_GetForests_RndCount       : Single =  18; // Minimum count of potential forest
+  GA_EYE_GetForests_RndLimit       : Single =   0.6; // Random limit for forest plan
 
 
 type
@@ -316,9 +326,7 @@ end;
 
 
 procedure TKMEye.AfterMissionInit();
-  procedure GeneralizeArray(var aArr: TKMByteArray);
-  const
-    RADIUS = 4;
+  procedure GeneralizeArray(const RADIUS: Byte; var aArr: TKMByteArray);
   var
     X,Y,Y2,X2,Idx: Integer;
     CopyArr: TKMByteArray;
@@ -388,6 +396,7 @@ begin
     //else if (gTerrain.TileIsCoal(X,Y) > 1) then
     else if gTerrain.TileHasStone(X,Y) then
     begin
+      Soil[Y,X] := 1; // Stone tile can be mined and used for farms
       if (Y < fMapY - 1) AND (tpWalk in gTerrain.Land[Y+1,X].Passability) then
         fStoneMiningTiles.Add(Loc);
     end
@@ -402,8 +411,8 @@ begin
         fIronLocs.Add(Loc);
     end;
   end;
-  GeneralizeArray(fSoil);
-  GeneralizeArray(fFlatArea);
+  GeneralizeArray(4,fSoil);
+  GeneralizeArray(4,fFlatArea);
 end;
 
 
@@ -518,7 +527,7 @@ var
     end;
   end;
 var
-  I, X,Y, FieldCnt, BuildCnt: Integer;
+  K, X,Y, FieldCnt, BuildCnt: Integer;
   CenterPointArr, MineLocs: TKMPointArray;
   //TagList: TKMPointTagList;
   FFInitPlace: TKMFFInitPlace;
@@ -531,20 +540,20 @@ begin
   try
     // Scan Resources - gold, iron
     MineLocs := FindSeparateMineLocs(false, htIronMine);
-    for I := 0 to Length(MineLocs) - 1 do
-      ScanLocArea(CenterPointArr[0], MineLocs[I]);
+    for K := 0 to Length(MineLocs) - 1 do
+      ScanLocArea(CenterPointArr[0], MineLocs[K]);
     MineLocs := FindSeparateMineLocs(false, htGoldMine);
-    for I := 0 to Length(MineLocs) - 1 do
-      ScanLocArea(CenterPointArr[0], MineLocs[I]);
+    for K := 0 to Length(MineLocs) - 1 do
+      ScanLocArea(CenterPointArr[0], MineLocs[K]);
     // Scan Resources - coal
     //TagList := TKMPointTagList.Create();
     //try
-    //  I := 0;
+    //  K := 0;
     //  Increment := Ceil(TagList.Count / 10.0); // Max 10 paths
-    //  while (I < TagList.Count) do
+    //  while (K < TagList.Count) do
     //  begin
-    //    ScanLocArea(CenterPointArr[0], TagList.Items[I]);
-    //    I := I + Increment;
+    //    ScanLocArea(CenterPointArr[0], TagList.Items[K]);
+    //    K := K + Increment;
     //  end;
     //finally
     //  TagList.Free;
@@ -553,12 +562,12 @@ begin
     {
     TagList := GetStoneLocs(True);
     try
-      I := 0;
+      K := 0;
       Increment := Ceil(TagList.Count / 5.0); // Max 5 paths
-      while (I < TagList.Count) do
+      while (K < TagList.Count) do
       begin
-        ScanLocArea(TagList.Items[I]);
-        I := I + Increment;
+        ScanLocArea(TagList.Items[K]);
+        K := K + Increment;
       end;
     finally
       TagList.Free;
@@ -899,14 +908,14 @@ function TKMEye.GetStoneLocs(): TKMPointTagList;
 const
   SCAN_LIMIT = 10;
 var
-  X,Y,I, MaxDist, Sum: Integer;
+  X,Y,K, MaxDist, Sum: Integer;
   Output: TKMPointTagList;
 begin
   Output := TKMPointTagList.Create();
-  for I := fStoneMiningTiles.Count-1 downto 0 do
+  for K := fStoneMiningTiles.Count-1 downto 0 do
   begin
-    X := fStoneMiningTiles.Items[I].X;
-    Y := fStoneMiningTiles.Items[I].Y;
+    X := fStoneMiningTiles.Items[K].X;
+    Y := fStoneMiningTiles.Items[K].Y;
     MaxDist := Max(1, Y-SCAN_LIMIT);
     // Find actual stone tile (if exist)
     while not gTerrain.TileHasStone(X, Y) AND (Y > MaxDist) do
@@ -915,18 +924,18 @@ begin
     if gTerrain.TileHasStone(X, Y)
        AND (tpWalk in gTerrain.Land[Y+1,X].Passability) then
     begin
-      fStoneMiningTiles.Items[I] := KMPoint(X,Y);
+      fStoneMiningTiles.Items[K] := KMPoint(X,Y);
       // Save tile as a potential point for quarry
       if gAIFields.Influences.CanPlaceHouseByInfluence(fOwner, X,Y+1) then
       begin
         Sum := 0;
         while (Y > 1) AND (AddStoneCount(X,Y,Sum) > 0) do
           Y := Y - 1;
-        Output.Add(fStoneMiningTiles.Items[I], Sum);
+        Output.Add(fStoneMiningTiles.Items[K], Sum);
       end;
     end
     else // Else remove point
-      fStoneMiningTiles.Delete(I);
+      fStoneMiningTiles.Delete(K);
   end;
   Result := Output;
 end;
@@ -936,9 +945,6 @@ end;
 // Create possible places for forests and return count of already existed forests
 procedure TKMEye.GetForests(var aForests: TKMPointTagList);
 const
-  //RADIUS = 5;
-  //MAX_DIST = RADIUS+1; // When is max radius = 5 and max distance = 6 and use KMDistanceAbs it will give area similar to circle (without need to calculate euclidean distance!)
-
   UNVISITED_TILE = 0;
   VISITED_TILE = 1;
   UNVISITED_TREE = 2;
@@ -975,7 +981,7 @@ begin
         AvoidBulding := gAIFields.Influences.AvoidBuilding[Y,X];
         if (AvoidBulding < AVOID_BUILDING_FOREST_MINIMUM) then // Tree is not part of existing forest
           VisitArr[Y,X] := UNVISITED_TREE
-        else if (AvoidBulding < GA_EYE_GetForests_MaxAB) then // Ignore trees which are too cloose to exist cutting point
+        else if (AvoidBulding < AVOID_BUILDING_FOREST_MINIMUM + GA_EYE_GetForests_MaxAB) then // Ignore trees which are too cloose to exist cutting point
           VisitArr[Y,X] := UNVISITED_TREE_IN_FOREST;
       end;
     end;
@@ -1024,10 +1030,11 @@ begin
   SparePointsCnt := 0;
   for I := 0 to Length(Polygons) - 1 do
   begin
+    if (SparePointsCnt + aForests.Count < GA_EYE_GetForests_RndCount) then
+      break;
     Ownership := gAIFields.Influences.OwnPoly[fOwner, I];
     if (Ownership > GA_EYE_GetForests_SPRndOwnLimMin)
        AND (Ownership < GA_EYE_GetForests_SPRndOwnLimMax)
-       AND (SparePointsCnt + aForests.Count < GA_EYE_GetForests_RndCount)
        AND (KaMRandom('TKMEye.GetForests') > GA_EYE_GetForests_RndLimit) then
     begin
       Point := Polygons[I].CenterPoint;
@@ -1125,6 +1132,55 @@ end;
 
 
 procedure TKMEye.Paint(aRect: TKMRect);
+const
+  COLOR_WHITE = $FFFFFF;
+  COLOR_BLACK = $000000;
+  COLOR_GREEN = $00FF00;
+  COLOR_RED = $8000FF;
+  COLOR_YELLOW = $00FFFF;
+  COLOR_BLUE = $FF0000;
+
+  procedure DrawHMA();
+  var
+    Dist,Idx,OFFSET,MAX_DIST: Integer;
+    Color: Cardinal;
+    Dir: TDirection;
+    Loc,Point: TKMPoint;
+    HT: TKMHouseType;
+    HMA: THouseMappingArray;
+  begin
+    MAX_DIST := Length(HMA[HOUSE_MIN].Surroundings);
+    OFFSET := MAX_DIST * 2 + 5;
+    Loc := KMPoint(0,OFFSET);
+    HMA := fHousesMapping;
+    for HT := HOUSE_MIN to HOUSE_MAX do
+    begin
+      if (Loc.X + OFFSET > gTerrain.MapX - OFFSET) then
+      begin
+        if (Loc.Y + OFFSET > gTerrain.MapY - OFFSET) then
+          break;
+        Loc.X := 0;
+        Loc.Y := Loc.Y + OFFSET;
+      end;
+      Loc.X := Loc.X + OFFSET;
+      for Idx := Low(HMA[HT].Tiles) to High(HMA[HT].Tiles) do
+        begin
+          Point := KMPointAdd(Loc, HMA[HT].Tiles[Idx]);
+          gRenderAux.Quad(Point.X, Point.Y, $80000000 OR COLOR_BLUE);
+        end;
+      for Dist := Low(HMA[HT].Surroundings) to High(HMA[HT].Surroundings) do
+        for Dir := Low(HMA[HT].Surroundings[Dist]) to High(HMA[HT].Surroundings[Dist]) do
+          for Idx := Low(HMA[HT].Surroundings[Dist,Dir]) to High(HMA[HT].Surroundings[Dist,Dir]) do
+          //for Idx := Low(HMA[HT].Surroundings[Dist,Dir]) + Byte((Dir = dirE) OR (Dir = dirW)) to High(HMA[HT].Surroundings[Dist,Dir]) - Byte((Dir = dirE) OR (Dir = dirW)) do
+          begin
+            Point := KMPointAdd(Loc, HMA[HT].Surroundings[Dist,Dir,Idx]);
+            Color := ((255 - Round(200 / MAX_DIST * Dist)) shl 24) OR COLOR_WHITE;
+            gRenderAux.Quad(Point.X, Point.Y, Color);
+          end;
+      gRenderAux.Quad(Loc.X, Loc.Y, $FF000000 OR COLOR_RED);
+      gRenderAux.Text(Point.X, Point.Y, gRes.Houses[HT].HouseName, $FF000000);
+    end;
+  end;
   procedure DrawTriangle(aIdx: Integer; aColor: Cardinal);
   var
     PolyArr: TPolygonArray;
@@ -1140,14 +1196,6 @@ procedure TKMEye.Paint(aRect: TKMRect);
       NodeArr[ PolyArr[aIdx].Indices[2] ].X,
       NodeArr[ PolyArr[aIdx].Indices[2] ].Y, aColor);
   end;
-
-const
-  COLOR_WHITE = $FFFFFF;
-  COLOR_BLACK = $000000;
-  COLOR_GREEN = $00FF00;
-  COLOR_RED = $8000FF;
-  COLOR_YELLOW = $00FFFF;
-  COLOR_BLUE = $FF0000;
 var
   PL: TKMHandID;
   I,X,Y: Integer;
