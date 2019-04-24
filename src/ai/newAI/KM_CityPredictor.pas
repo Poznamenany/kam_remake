@@ -7,8 +7,8 @@ uses
   KM_AISetup, KM_ResHouses, KM_ResWares, KM_HandStats;
 
 var
-  GA_PREDICTOR_STONE_NEED_PER_A_WORKER : Single = 0.648239613;
-  GA_PREDICTOR_WOOD_NEED_PER_A_WORKER  : Single = 0.280672461;
+  GA_PREDICTOR_WareNeedPerAWorker_Stone : Single = 0.648239613;
+  GA_PREDICTOR_WareNeedPerAWorker_Wood  : Single = 0.280672461;
 
 type
   TWareBalance = record
@@ -345,12 +345,12 @@ const
   WOOD_NEED_PER_A_WORKER = 0.35;
 begin
   // Worker count is decreased after peace time -> compute with maximal count
-  fWareBalance[wtStone].ActualConsumption := Min(fCityStats.Citizens[utWorker]+8, fWorkerCount) * GA_PREDICTOR_STONE_NEED_PER_A_WORKER;
-  fWareBalance[wtStone].FinalConsumption := Max(fCityStats.Citizens[utWorker], fWorkerCount) * GA_PREDICTOR_STONE_NEED_PER_A_WORKER;
+  fWareBalance[wtStone].ActualConsumption := Min(fCityStats.Citizens[utWorker]+8, fWorkerCount) * GA_PREDICTOR_WareNeedPerAWorker_Stone;
+  fWareBalance[wtStone].FinalConsumption := fWareBalance[wtStone].ActualConsumption;
   // Raw wood expectations
   UpdateWareConsumption(wtWood, aInitialization);
-  fWareBalance[wtWood].ActualConsumption := Max(fWareBalance[wtWood].ActualConsumption, fCityStats.Citizens[utWorker] * GA_PREDICTOR_WOOD_NEED_PER_A_WORKER);
-  fWareBalance[wtWood].FinalConsumption := Max(fWareBalance[wtWood].FinalConsumption, fWorkerCount * GA_PREDICTOR_WOOD_NEED_PER_A_WORKER);
+  fWareBalance[wtWood].ActualConsumption := Max(fWareBalance[wtWood].ActualConsumption, fCityStats.Citizens[utWorker] * GA_PREDICTOR_WareNeedPerAWorker_Wood);
+  fWareBalance[wtWood].FinalConsumption := Max(fWareBalance[wtWood].FinalConsumption, fWorkerCount * GA_PREDICTOR_WareNeedPerAWorker_Wood);
 end;
 
 
@@ -654,8 +654,8 @@ begin
     FillChar(RequiredHouses, SizeOf(RequiredHouses), #0);
     // Allow to reserve quarries
     UpdateWareProduction(wtStone);
-    fWareBalance[wtStone].ActualConsumption := Min(fCityStats.Citizens[utWorker]+8, fWorkerCount) * GA_PREDICTOR_STONE_NEED_PER_A_WORKER;
-    fWareBalance[wtStone].FinalConsumption := Max(fCityStats.Citizens[utWorker], fWorkerCount) * GA_PREDICTOR_STONE_NEED_PER_A_WORKER;
+    fWareBalance[wtStone].ActualConsumption := Min(fCityStats.Citizens[utWorker]+8, fWorkerCount) * GA_PREDICTOR_WareNeedPerAWorker_Stone;
+    fWareBalance[wtStone].FinalConsumption := Max(fCityStats.Citizens[utWorker], fWorkerCount) * GA_PREDICTOR_WareNeedPerAWorker_Stone;
     UpdateWareDerivation(wtStone);
     RequiredHouses[htSchool] := Max(0, 1 - Planner.PlannedHouses[htSchool].Count);
     Exit;

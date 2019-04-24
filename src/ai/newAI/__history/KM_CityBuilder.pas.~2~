@@ -412,7 +412,7 @@ procedure TKMCityBuilder.UpdateBuildNodes(out aFreeWorkersCnt: Integer);
 //    6,7: receive wood, build wine
 //    8: End task
 var
-  K,L, Prio, ClosestIdx, ClosestDist, Dist, ReqWorkerCnt: Integer;
+  K,L,M, Prio, ClosestIdx, ClosestDist, Dist, ReqWorkerCnt: Integer;
   WorkersPos: TKMPointArray;
   BuildNode: TBuildNode;
 begin
@@ -451,28 +451,26 @@ begin
 
   // Find closest build-node to each free worker and allow to expand it in next update + consider priority of node
   K := 0;
-  ClosestIdx := 0;
   while (aFreeWorkersCnt > 0) AND (fBuildNodes[K].Active) do
   begin
+    // Find upper index of the same priority
+    for L := K to High(fBuildNodes) do
+      if not (fBuildNodes[ Min(L+1,High(fBuildNodes)) ].Active) OR (fBuildNodes[K].Priority <> fBuildNodes[ Min(L+1,High(fBuildNodes)) ].Priority) then
+        Break;
     // Get best distance and assign worker
     while (aFreeWorkersCnt > 0) do
     begin
       ClosestDist := High(Integer);
-      for L := K to High(fBuildNodes) do
-        if (fBuildNodes[K].Priority = fBuildNodes[L].Priority) AND (fBuildNodes[L].Active) then
+      for M := K to L do
+        if (fBuildNodes[M].Active) AND (fBuildNodes[M].RequiredWorkers > 0) then
         begin
-          if (fBuildNodes[L].RequiredWorkers > 0) then
+          Dist := KMDistanceAbs(WorkersPos[aFreeWorkersCnt - 1], fBuildNodes[M].CenterPoint);
+          if (Dist < ClosestDist) then
           begin
-            Dist := KMDistanceAbs(WorkersPos[aFreeWorkersCnt - 1], fBuildNodes[L].CenterPoint);
-            if (Dist < ClosestDist) then
-            begin
-              ClosestDist := Dist;
-              ClosestIdx := L;
-            end;
+            ClosestDist := Dist;
+            ClosestIdx := M;
           end;
-        end
-        else
-          break;
+        end;
       if (ClosestDist <> High(Integer)) then
       begin
         aFreeWorkersCnt := aFreeWorkersCnt - 1;
@@ -485,7 +483,7 @@ begin
       else
         break;
     end;
-    K := L;
+    K := L+1;
   end;
 
   //if (aFreeWorkersCnt > 0) then // Delete if?
@@ -1034,6 +1032,8 @@ var
   end;
 
   function GetHousesToUnlock(aHT: TKMHouseType; var aHTArr: TKMHouseTypeArray): Boolean;
+  var
+    initHT: TKMHouseType;
   begin
     Result := True;
     // Repeat until it finds an available house (to unlock target house)
@@ -1070,10 +1070,12 @@ var
     IgnoreTreesInPlan, HouseReservation, IgnoreExistingPlans, MaterialShortage: Boolean;
     NodePrio: Byte;
     K: Integer;
+    FollowingHouse: TKMHouseType;
     HTArr: TKMHouseTypeArray;
     Output: TConstructionState;
   begin
     Output := csCannotPlaceHouse;
+    FollowingHouse := htNone;
     // Check if AI can build house (if is house blocked [by script] ignore it)
     if GetHousesToUnlock(aHT, HTArr) AND ((aUnlockProcedureAllowed) OR (Length(HTArr) = 1)) then
     begin
@@ -1088,6 +1090,7 @@ var
           Output := BuildHouse(IgnoreTreesInPlan, HouseReservation, IgnoreExistingPlans, HTArr[K], NodePrio);
           RequiredHouses[ HTArr[K] ] := 0;
         end;
+      //Output := BuildHouse(False, True, False, FollowingHouse)
       //BuildHouse(aIgnoreTreesInPlan, aHouseReservation, aIgnoreExistingPlans: Boolean; aHT: TKMHouseType);
     end
     else if aUnlockProcedureAllowed AND TryUnlockByRnd(aHT) then // There is scripted unlock order -> try to place random house (it works 100% for any crazy combinations which will scripters bring)

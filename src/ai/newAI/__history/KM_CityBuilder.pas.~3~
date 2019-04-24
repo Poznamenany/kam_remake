@@ -412,7 +412,7 @@ procedure TKMCityBuilder.UpdateBuildNodes(out aFreeWorkersCnt: Integer);
 //    6,7: receive wood, build wine
 //    8: End task
 var
-  K,L, Prio, ClosestIdx, ClosestDist, Dist, ReqWorkerCnt: Integer;
+  K,L,M, Prio, ClosestIdx, ClosestDist, Dist, ReqWorkerCnt: Integer;
   WorkersPos: TKMPointArray;
   BuildNode: TBuildNode;
 begin
@@ -454,25 +454,24 @@ begin
   ClosestIdx := 0;
   while (aFreeWorkersCnt > 0) AND (fBuildNodes[K].Active) do
   begin
+    // Find upper index of the same priority
+    for L := K to High(fBuildNodes) do
+      if not (fBuildNodes[ Min(L+1,High(fBuildNodes)) ].Active) OR (fBuildNodes[K].Priority <> fBuildNodes[ Min(L+1,High(fBuildNodes)) ].Priority) then
+        Break;
     // Get best distance and assign worker
     while (aFreeWorkersCnt > 0) do
     begin
       ClosestDist := High(Integer);
-      for L := K to High(fBuildNodes) do
-        if (fBuildNodes[K].Priority = fBuildNodes[L].Priority) AND (fBuildNodes[L].Active) then
+      for M := K to L do
+        if (fBuildNodes[M].Active) AND (fBuildNodes[M].RequiredWorkers > 0) then
         begin
-          if (fBuildNodes[L].RequiredWorkers > 0) then
+          Dist := KMDistanceAbs(WorkersPos[aFreeWorkersCnt - 1], fBuildNodes[M].CenterPoint);
+          if (Dist < ClosestDist) then
           begin
-            Dist := KMDistanceAbs(WorkersPos[aFreeWorkersCnt - 1], fBuildNodes[L].CenterPoint);
-            if (Dist < ClosestDist) then
-            begin
-              ClosestDist := Dist;
-              ClosestIdx := L;
-            end;
+            ClosestDist := Dist;
+            ClosestIdx := M;
           end;
-        end
-        else
-          break;
+        end;
       if (ClosestDist <> High(Integer)) then
       begin
         aFreeWorkersCnt := aFreeWorkersCnt - 1;
@@ -485,7 +484,7 @@ begin
       else
         break;
     end;
-    K := L;
+    K := L+1;
   end;
 
   //if (aFreeWorkersCnt > 0) then // Delete if?

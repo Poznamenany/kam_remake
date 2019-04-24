@@ -49,7 +49,7 @@ const
   //Also there is a technical limit, of how many ticks we can calculate per update
   MAX_TICKS_PER_GAME_UPDATE = 100;
 
-  DEBUG_CFG = True; //Debug preset for most usable debug options
+  DEBUG_CFG = False; //Debug preset for most usable debug options
 var
   // These should be True (we can occasionally turn them Off to speed up the debug)
   CALC_EXPECTED_TICK    :Boolean = False;  //Do we calculate expected tick and try to be in-time (send as many tick as needed to get to expected tick)
@@ -174,8 +174,8 @@ var
   DO_PERF_LOGGING         :Boolean = False; //Write each ticks time to log
   MP_RESULTS_IN_SP        :Boolean = False; //Display each players stats in SP
   {Gameplay}
-  USE_CUSTOM_SEED       :Boolean = True; //Use custom seed for every game
-  CUSTOM_SEED_VALUE     :Integer = 1982445511;     //Custom seed value
+  USE_CUSTOM_SEED       :Boolean = False; //Use custom seed for every game
+  CUSTOM_SEED_VALUE     :Integer = 0;     //Custom seed value
   PAUSE_GAME_AT_TICK    :Integer = -1;    //Pause at specified game tick
   {Gameplay cheats}
   UNLOCK_CAMPAIGN_MAPS  :Boolean = False; //Unlock more maps for debug

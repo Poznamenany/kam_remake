@@ -720,7 +720,6 @@ end;
 
 procedure TKMArmyManagement.UpdateState(aTick: Cardinal);
 begin
-{
   if (aTick mod MAX_HANDS = fOwner) then
   begin
     CheckThreats();
@@ -733,7 +732,6 @@ begin
     fAttack.UpdateState(aTick);
     fDefence.UpdateState(aTick);
   end;
-}
 end;
 
 

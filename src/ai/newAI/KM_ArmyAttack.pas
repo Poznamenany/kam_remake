@@ -45,6 +45,7 @@ type
 
     procedure SetTargetHouse(aHouse: TKMHouse);
     procedure SetTargetUnit(aUnit: TKMUnit);
+    procedure SetTargetPosition(aLoc: TKMPointDir);
   public
     constructor Create(aGroup: TKMUnitGroup);
     constructor Load(LoadStream: TKMemoryStream);
@@ -55,7 +56,7 @@ type
     property Group: TKMUnitGroup read fGroup;
     property OnPlace: Boolean read fOnPlace;
     property InFight: Boolean read SquadInFight;
-    property FinalPosition: TKMPointDir read fFinalPosition write fFinalPosition;
+    property FinalPosition: TKMPointDir read fFinalPosition write SetTargetPosition;
     property Position: TKMPoint read GetGroupPosition;
     property WalkTimeLimit: Cardinal read fWalkTimeLimit write fWalkTimeLimit;
     property AttackTimeLimit: Cardinal read fAttackTimeLimit write fAttackTimeLimit;
@@ -73,6 +74,7 @@ type
     fPathPosition: TKMPoint;
     fScanPosition: TKMPoint;
     fCompanyMode: TKMCompanyMode;
+    fTargetOwner: TKMHandID;
     fTargetPoint: TKMPoint;
     fTargetHouse: TKMHouse;
     fTargetUnit: TKMUnit;
@@ -261,6 +263,20 @@ begin
     gHands.CleanUpUnitPointer(fTargetUnit); // aUnit = nil case
 end;
 
+
+procedure TAISquad.SetTargetPosition(aLoc: TKMPointDir);
+var
+  pom: Integer;
+begin
+  pom := 0;
+  if kmSamePoint(aLoc.Loc,KMPOINT_ZERO) then
+  begin
+    pom := pom * 1;
+  end;
+  if (pom < 5) then
+  fFinalPosition := aLoc;
+end;
+
 procedure TAISquad.SetTargetHouse(aHouse: TKMHouse);
 begin
   if (aHouse <> nil) then
@@ -412,6 +428,7 @@ begin
 
   fCompanyMode := aCompanyMode;
   fTargetPoint := KMPOINT_ZERO;
+  fTargetOwner := -1;
   fTargetHouse := nil;
   fTargetUnit := nil;
 
@@ -444,6 +461,7 @@ begin
   LoadStream.Read(fScanPosition);
   LoadStream.Read(fCompanyMode, SizeOf(TKMCompanyMode));
   LoadStream.Read(fTargetPoint);
+  LoadStream.Read(fTargetOwner);
   LoadStream.Read(fTargetUnit, 4);
   LoadStream.Read(fTargetHouse, 4);
 
@@ -468,6 +486,7 @@ begin
   SaveStream.Write(fScanPosition);
   SaveStream.Write(fCompanyMode, SizeOf(TKMCompanyMode));
   SaveStream.Write(fTargetPoint);
+  SaveStream.Write(fTargetOwner);
   if (fTargetUnit <> nil) then
     SaveStream.Write(fTargetUnit.UID) //Store ID
   else
@@ -507,12 +526,14 @@ begin
   begin
     gHands.CleanUpUnitPointer(fTargetUnit);
     fTargetUnit := aUnit.GetUnitPointer;
+    fTargetOwner := aUnit.Owner;
     Result := True;
   end
   else if (aHouse <> nil) AND (aUnit = nil) then
   begin
     gHands.CleanUpHousePointer(fTargetHouse);
     fTargetHouse := aHouse.GetHousePointer;
+    fTargetOwner := aHouse.Owner;
     Result := True;
   end;
 end;
@@ -619,7 +640,14 @@ begin
     if not SetTarget(ClosestHouse, ClosestUnit) then
     begin
       if ActualizeTarget(fScanPosition, ClosestHouse, ClosestUnit, False) then
-        SetTarget(ClosestHouse, ClosestUnit);
+      begin
+        if not gAIFields.Supervisor.FFA
+          OR ((ClosestHouse <> nil) AND (ClosestHouse.Owner = fTargetOwner))
+          OR ((ClosestUnit <> nil) AND (ClosestUnit.Owner = fTargetOwner)) then
+          SetTarget(ClosestHouse, ClosestUnit)
+        else
+          fState := csIdle;
+      end;
     end;
   end;
 
