@@ -742,7 +742,7 @@ begin
   if AllowDebugChange then
   begin
     SHOW_AI_WARE_BALANCE := chkShowBalance.Checked;
-    SHOW_OVERLAY_BEVEL := chkBevel.Checked;
+    SHOW_DEBUG_OVERLAY_BEVEL := chkBevel.Checked;
     OVERLAY_DEFENCES := chkShowDefences.Checked;
     OVERLAY_AI_BUILD := chkBuildAI.Checked;
     OVERLAY_AI_COMBAT := chkCombatAI.Checked;

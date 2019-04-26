@@ -218,7 +218,7 @@ begin
       LoadMnmStream := TKMemoryStream.Create;
       try
         try
-          MinimapFilePath := fPath + fFileName + '.' + EXT_SAVE_MP_MINIMAP;
+          MinimapFilePath := fPath + fFileName + '.' + EXT_SAVE_MP_LOCAL;
           if FileExists(MinimapFilePath) then
           begin
             LoadMnmStream.LoadFromFile(MinimapFilePath); // try to load minimap from file

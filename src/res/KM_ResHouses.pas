@@ -17,6 +17,7 @@ type
     htWeaponSmithy,    htWeaponWorkshop,  htWineyard,      htWoodcutters    );
 
   THouseTypeSet = set of TKMHouseType;
+  TKMHouseTypeArray = array of TKMHouseType;
 
 const
   HOUSE_MIN = htArmorSmithy;

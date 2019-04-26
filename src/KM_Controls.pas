@@ -1765,12 +1765,12 @@ end;
 function TKMControl.KeyDown(Key: Word; Shift: TShiftState): Boolean;
 var Amt: Byte;
 begin
-  Result := MODE_DESIGN_CONTORLS;
+  Result := MODE_DESIGN_CONTROLS;
 
   if Assigned(fOnKeyDown) then
     Result := fOnKeyDown(Self, Key, Shift);
 
-  if MODE_DESIGN_CONTORLS then
+  if MODE_DESIGN_CONTROLS then
   begin
     Amt := 1;
     if ssCtrl  in Shift then Amt := 10;
@@ -1803,7 +1803,7 @@ begin
   if Assigned(fOnKeyUp) then
     Result := fOnKeyUp(Self, Key, Shift);
 
-  if not MODE_DESIGN_CONTORLS then Exit;
+  if not MODE_DESIGN_CONTROLS then Exit;
 end;
 
 
@@ -9057,7 +9057,7 @@ begin
   CtrlPaintCount := 0;
   fMasterPanel.Paint;
 
-  if MODE_DESIGN_CONTORLS and (CtrlFocus <> nil) then
+  if MODE_DESIGN_CONTROLS and (CtrlFocus <> nil) then
     TKMRenderUI.WriteText(CtrlFocus.AbsLeft, CtrlFocus.AbsTop-14, 0, inttostr(CtrlFocus.AbsLeft)+':'+inttostr(CtrlFocus.AbsTop), fntGrey, taLeft);
 end;
 
