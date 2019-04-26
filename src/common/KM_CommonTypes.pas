@@ -40,6 +40,7 @@ type
   TBooleanEvent = procedure (aValue: Boolean) of object;
   TBooleanObjEvent = procedure (Sender: TObject; aValue: Boolean) of object;
   TIntegerEvent = procedure (aValue: Integer) of object;
+  TIntBoolEvent = procedure (aIntValue: Integer; aBoolValue: Boolean) of object;
   TObjectIntegerEvent = procedure (Sender: TObject; X: Integer) of object;
   TSingleEvent = procedure (aValue: Single) of object;
   TAnsiStringEvent = procedure (const aData: AnsiString) of object;
@@ -97,6 +98,8 @@ type
 
 
   TKMCustomScriptParamDataArray = array [TKMCustomScriptParam] of TKMCustomScriptParamData;
+
+  TKMPlayerColorMode = (pcmNone, pcmColors, pcmAllyEnemy, pcmTeams);
 
   const
     WonOrLostText: array [TWonOrLost] of UnicodeString = ('None', 'Won', 'Lost');

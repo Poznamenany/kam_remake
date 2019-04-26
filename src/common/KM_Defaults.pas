@@ -52,7 +52,7 @@ const
   DEBUG_CFG = True; //Debug preset for most usable debug options
 var
   // These should be True (we can occasionally turn them Off to speed up the debug)
-  CALC_EXPECTED_TICK    :Boolean = False;  //Do we calculate expected tick and try to be in-time (send as many tick as needed to get to expected tick)
+  CALC_EXPECTED_TICK    :Boolean = not DEBUG_CFG;  //Do we calculate expected tick and try to be in-time (send as many tick as needed to get to expected tick)
   MAKE_ANIM_TERRAIN     :Boolean = True;  //Should we animate water and swamps
   MAKE_TEAM_COLORS      :Boolean = True;  //Whenever to make team colors or not, saves RAM for debug
   DYNAMIC_TERRAIN       :Boolean = True;  //Update terrain each tick to grow things
@@ -122,8 +122,9 @@ var
   SKIP_RENDER             :Boolean = False; //Skip all the rendering in favor of faster logic
   SKIP_SOUND              :Boolean = False; //Skip all the sounds in favor of faster logic
   SKIP_LOADING_CURSOR     :Boolean = False; //Skip loading and setting cursor
-  AGGRESSIVE_REPLAYS      :Boolean = False; //Write a command gicTempDoNothing every tick in order to find exactly when a replay mismatch occurs
+  AGGRESSIVE_REPLAYS      :Boolean = True; //Write a command gicTempDoNothing every tick in order to find exactly when a replay mismatch occurs
   SHOW_GAME_TICK          :Boolean = DEBUG_CFG; //Show game tick next to game time
+  SHOW_FPS                :Boolean = False; //Show FPS
   SHOW_TERRAIN_IDS        :Boolean = False; //Show number of every tile terrain on it (also show layers terrain ids)
   SHOW_TERRAIN_KINDS      :Boolean = False; //Show terrain kind ids on every tile corner
   SHOW_TERRAIN_TILES_GRID :Boolean = False; //Show terrain tiles grid
@@ -156,7 +157,7 @@ var
   OVERLAY_AI_SOIL         :Boolean = False; //Show Soil vision of new AI
   OVERLAY_AI_FLATAREA     :Boolean = False; //Show FlatArea vision of new AI
   OVERLAY_AI_ROUTES       :Boolean = False; //Show Routes to resources vision of new AI
-  OVERLAY_AI_SUPERVISOR   :Boolean = False; //Show Supervisor vision of new AI 
+  OVERLAY_AI_SUPERVISOR   :Boolean = False; //Show Supervisor vision of new AI
   {Stats}
   SHOW_SPRITE_COUNT       :Boolean = False; //display rendered controls/sprites count
   SHOW_POINTER_COUNT      :Boolean = False; //Show debug total count of unit/house pointers being tracked
@@ -164,7 +165,6 @@ var
   SHOW_NETWORK_DELAY      :Boolean = False; //Show the current delay in multiplayer game
   SHOW_ARMYEVALS          :Boolean = False; //Show result of enemy armies evaluation
   SHOW_AI_WARE_BALANCE    :Boolean = False; //Show wares balance (Produced - Consumed)
-  SHOW_OVERLAY_BEVEL      :Boolean = False; //Show wares balance overlay Bevel (for better text readability)
   SHOW_NET_PACKETS_STATS  :Boolean = False; //Show network packet statistics
   SHOW_NET_PACKETS_LIMIT  :Integer = 1;
   SHOW_SELECTED_OBJ_INFO  :Boolean = False; //Show selected object (Unit/Group + Unit/House) data (UID/order/action etc)
@@ -173,9 +173,10 @@ var
   SLOW_SAVE_SCAN          :Boolean = False; //Scan saves with a pause to emulate uncached file access
   DO_PERF_LOGGING         :Boolean = False; //Write each ticks time to log
   MP_RESULTS_IN_SP        :Boolean = False; //Display each players stats in SP
+  SHOW_DEBUG_OVERLAY_BEVEL:Boolean = True; //Show debug text overlay Bevel (for better text readability)
   {Gameplay}
-  USE_CUSTOM_SEED       :Boolean = True; //Use custom seed for every game
-  CUSTOM_SEED_VALUE     :Integer = 1982445511;     //Custom seed value
+  USE_CUSTOM_SEED       :Boolean = False; //Use custom seed for every game
+  CUSTOM_SEED_VALUE     :Integer = 0;     //Custom seed value
   PAUSE_GAME_AT_TICK    :Integer = -1;    //Pause at specified game tick
   {Gameplay cheats}
   UNLOCK_CAMPAIGN_MAPS  :Boolean = False; //Unlock more maps for debug
@@ -283,14 +284,14 @@ const
   EXT_SAVE_REPLAY = 'rpl';
   EXT_SAVE_MAIN = 'sav';
   EXT_SAVE_BASE = 'bas';
-  EXT_SAVE_MP_MINIMAP = 'smm';
+  EXT_SAVE_MP_LOCAL = 'sloc';
 
   EXT_FILE_SCRIPT = 'script';
 
   EXT_SAVE_REPLAY_DOT = '.' + EXT_SAVE_REPLAY;
   EXT_SAVE_MAIN_DOT = '.' + EXT_SAVE_MAIN;
   EXT_SAVE_BASE_DOT = '.' + EXT_SAVE_BASE;
-  EXT_SAVE_MP_MINIMAP_DOT = '.' + EXT_SAVE_MP_MINIMAP;
+  EXT_SAVE_MP_LOCAL_DOT = '.' + EXT_SAVE_MP_LOCAL;
 
   EXT_FILE_SCRIPT_DOT = '.' + EXT_FILE_SCRIPT;
 
@@ -486,6 +487,9 @@ const
   ANIMAL_MAX = utDuck;
 
   WARRIORS_IRON = [utSwordsman, utArbaletman, utHallebardman, utCavalry];
+
+  CITIZENS_CNT = Integer(CITIZEN_MAX) - Integer(CITIZEN_MIN) + 1;
+  WARRIORS_CNT = Integer(WARRIOR_MAX) - Integer(WARRIOR_MIN) + 1;
 
 type
   TKMCheckAxis = (axX, axY);
@@ -811,6 +815,9 @@ const
   icGoldenYellow = $FF00B0FF;
   icAmberBrown = $FF006797;
   icDarkGoldenRod = $FF0080B0; // brown shade color
+
+  icBarColorGreen = $FF00AA26;
+  icBarColorBlue = $FFBBAA00;
 
   // Interface colors (by usage)
   clPingLow = icGreen;

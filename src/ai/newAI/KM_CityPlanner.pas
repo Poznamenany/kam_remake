@@ -32,22 +32,25 @@ var
   GA_PLANNER_PlaceWoodcutter_DistFromForest           : Single =  66.286; // 0-X
   }
 
-   GA_PLANNER_ObstaclesInHousePlan_Tree       : Single = 0;
-   GA_PLANNER_ObstaclesInHousePlan_Road       : Single = 0;
-   GA_PLANNER_FieldCrit_PolyRoute             : Single = 0;
-   GA_PLANNER_FieldCrit_FlatArea              : Single = 3;
-   GA_PLANNER_FieldCrit_Soil                  : Single = 3;
-   GA_PLANNER_SnapCrit_SnapToHouse            : Single = 0;
-   GA_PLANNER_SnapCrit_SnapToFields           : Single = 0;
-   GA_PLANNER_SnapCrit_SnapToRoads            : Single = 10;
-   GA_PLANNER_SnapCrit_ClearEntrance          : Single = 10;
-   GA_PLANNER_FindPlaceForHouse_SnapCrit      : Single = 2;
-   GA_PLANNER_FindPlaceForHouse_HouseDist     : Single = 0;
-   GA_PLANNER_FindPlaceForHouse_SeedDist      : Single = 10;
-   GA_PLANNER_FindPlaceForHouse_CityCenter    : Single = 0;
-   GA_PLANNER_FindPlaceForHouse_Route         : Single = 0.0630203858017921448;
-   GA_PLANNER_FindPlaceForHouse_FlatArea      : Single = 3;
-   GA_PLANNER_PlaceWoodcutter_DistFromForest  : Single = 0;
+GA_PLANNER_ObstaclesInHousePlan_Tree       : Single = 0;
+GA_PLANNER_ObstaclesInHousePlan_Road       : Single = 150;
+GA_PLANNER_FieldCrit_PolyRoute             : Single = 0;
+GA_PLANNER_FieldCrit_FlatArea              : Single = 0;
+GA_PLANNER_FieldCrit_Soil                  : Single = 0;
+GA_PLANNER_SnapCrit_SnapToHouse            : Single = 50;
+GA_PLANNER_SnapCrit_SnapToFields           : Single = 50;
+GA_PLANNER_SnapCrit_SnapToRoads            : Single = 0;
+GA_PLANNER_SnapCrit_ClearEntrance          : Single = 49.4826126098632812;
+GA_PLANNER_FindPlaceForHouse_SnapCrit      : Single = 0;
+GA_PLANNER_FindPlaceForHouse_HouseDist     : Single = 0;
+GA_PLANNER_FindPlaceForHouse_SeedDist      : Single = 50;
+GA_PLANNER_FindPlaceForHouse_CityCenter    : Single = 0;
+GA_PLANNER_FindPlaceForHouse_Route         : Single = 0;
+GA_PLANNER_FindPlaceForHouse_FlatArea      : Single = 0;
+GA_PLANNER_PlaceWoodcutter_DistFromForest  : Single = 0.732519686222076416;
+
+
+
 
 
   GA_PLANNER_FindPlaceForWoodcutter_TreeCnt           : Single =   2.812; // 0-~20

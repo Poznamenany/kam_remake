@@ -452,7 +452,7 @@ begin
   // Find closest build-node to each free worker and allow to expand it in next update + consider priority of node
   K := 0;
   ClosestIdx := 0;
-  while (aFreeWorkersCnt > 0) AND (fBuildNodes[K].Active) do
+  while (aFreeWorkersCnt > 0) AND (K < Length(fBuildNodes)) AND (fBuildNodes[K].Active) do
   begin
     // Get best distance and assign worker
     while (aFreeWorkersCnt > 0) do
