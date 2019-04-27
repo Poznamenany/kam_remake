@@ -58,6 +58,7 @@ type
     fCanBeHuman: Boolean;
     fHandAITypes: TKMAITypeSet;
     fFlagColor: Cardinal;
+    fTeamColor: Cardinal;
     fCenterScreen: TKMPoint;
     fAlliances: array [0 .. MAX_HANDS - 1] of TKMAllianceType;
     fShareFOW: array [0 .. MAX_HANDS - 1] of Boolean;
@@ -67,6 +68,8 @@ type
     fHSketch: TKMHouseSketchEdit;
     fFirstHSketch: TKMHouseSketchEdit;
     fFoundHSketch: TKMHouseSketchEdit;
+
+    fOnAllianceChange: TEvent;
 
     function GetColorIndex: Byte;
 
@@ -91,7 +94,7 @@ type
     //Used for syncing hotkeys in multiplayer saves only. UI keeps local value to avoid GIP delays
     SelectionHotkeys: array[0..DYNAMIC_HOTKEYS_NUM-1] of Integer;
 
-    constructor Create(aHandIndex: TKMHandID);
+    constructor Create(aHandIndex: TKMHandID; aOnAllianceChange: TEvent);
     destructor Destroy; override;
 
     property AI: TKMHandAI read fAI;
@@ -117,6 +120,7 @@ type
     property CanBeHuman: Boolean read fCanBeHuman write fCanBeHuman;
     property HandAITypes: TKMAITypeSet read fHandAITypes;
     property FlagColor: Cardinal read fFlagColor write fFlagColor;
+    property TeamColor: Cardinal read fTeamColor write fTeamColor;
     property GameFlagColor: Cardinal read GetGameFlagColor;
     property FlagColorIndex: Byte read GetColorIndex;
     property Alliances[aIndex: Integer]: TKMAllianceType read GetAlliances write SetAlliances;
@@ -145,7 +149,8 @@ type
     function GetNextHouseWSameType(aHouseType: TKMHouseType; aStartFromUID: Cardinal;
                                    out aHouseSketch: TKMHouseSketchEdit;
                                    aSketchTypesSet: TKMHouseSketchTypeSet;
-                                   aVerifySketch: TAnonHouseSketchBoolFn): TKMHouse; overload;
+                                   aVerifySketch: TAnonHouseSketchBoolFn;
+                                   aVerifySketchBoolParam: Boolean): TKMHouse; overload;
     function GetNextUnitWSameType(aUnitType: TKMUnitType; aStartFromUID: Cardinal): TKMUnit;
     function GetNextGroupWSameType(aUnitType: TKMUnitType; aStartFromUID: Cardinal): TKMUnitGroup;
 
@@ -291,13 +296,15 @@ end;
 
 
 { TKMHand }
-constructor TKMHand.Create(aHandIndex: TKMHandID);
+constructor TKMHand.Create(aHandIndex: TKMHandID; aOnAllianceChange: TEvent);
 var
   I: Integer;
 begin
   inherited Create(aHandIndex);
 
   Enabled := True;
+
+  fOnAllianceChange := aOnAllianceChange;
 
   fAI           := TKMHandAI.Create(fID);
   fFogOfWar     := TKMFogOfWar.Create(gTerrain.MapX, gTerrain.MapY);
@@ -324,6 +331,7 @@ begin
 
   fAlliances[fID] := atAlly; //Others are set to enemy by default
   fFlagColor := DefaultTeamColors[fID]; //Init with default color, later replaced by Script
+  fTeamColor := fFlagColor;
 
   fHSketch := TKMHouseSketchEdit.Create;
   fFirstHSketch := TKMHouseSketchEdit.Create;
@@ -549,14 +557,15 @@ function TKMHand.GetNextHouseWSameType(aHouseType: TKMHouseType; aStartFromUID: 
                                        out aHouseSketch: TKMHouseSketchEdit;
                                        aSketchTypesSet: TKMHouseSketchTypeSet = [hstHouse]): TKMHouse;
 begin
-  Result := GetNextHouseWSameType(aHouseType, aStartFromUID, aHouseSketch, aSketchTypesSet, nil);
+  Result := GetNextHouseWSameType(aHouseType, aStartFromUID, aHouseSketch, aSketchTypesSet, nil, False);
 end;
 
 
 function TKMHand.GetNextHouseWSameType(aHouseType: TKMHouseType; aStartFromUID: Cardinal;
                                        out aHouseSketch: TKMHouseSketchEdit;
                                        aSketchTypesSet: TKMHouseSketchTypeSet;
-                                       aVerifySketch: TAnonHouseSketchBoolFn): TKMHouse;
+                                       aVerifySketch: TAnonHouseSketchBoolFn;
+                                       aVerifySketchBoolParam: Boolean): TKMHouse;
 
 var
   ResultSet: Boolean;
@@ -590,6 +599,8 @@ var
   begin
     aHouseSketchTmp.Clear;
 
+    Sketch2Verify := nil;
+
     if (hstHouse in aSketchTypesSet) and (aIndex < fHouses.Count) then
     begin
       FillHSketchByHouse(aHouseSketchTmp, fHouses[aIndex]);
@@ -601,7 +612,7 @@ var
     end;
 
     Result := not aHouseSketchTmp.IsEmpty
-              and (not Assigned(aVerifySketch) or aVerifySketch(Sketch2Verify));
+              and (not Assigned(aVerifySketch) or aVerifySketch(Sketch2Verify, aVerifySketchBoolParam));
   end;
 
   procedure FillResult(aIndex: Integer; aHSketch: TKMHouseSketchEdit);
@@ -750,7 +761,7 @@ begin
 
     if (Group = nil)
       or Group.IsDead //check if group is dead
-      or (Group.UnitType <> aUnitType) then // we are interested in groups with the same type only
+      or not Group.HasUnitType(aUnitType) then // we are interested in groups with the same type only
       Continue;
 
     //Just find any first house
@@ -847,17 +858,20 @@ end;
 function TKMHand.GetGameFlagColor: Cardinal;
 begin
   Result := fFlagColor;
-  if (gGame <> nil) then
+  if (gGame <> nil) and not gGame.IsMapEditor then
   begin
-    if not gGame.IsMapEditor and not gGameApp.GameSettings.ShowPlayersColors then
-    begin
-      if ID = gMySpectator.HandID then
-        Result := gGameApp.GameSettings.PlayerColorSelf
-      else if (Alliances[gMySpectator.HandID] = atAlly) then
-        Result := gGameApp.GameSettings.PlayerColorAlly
-      else
-        Result := gGameApp.GameSettings.PlayerColorEnemy;
+    case gGameApp.GameSettings.PlayersColorMode of
+      pcmAllyEnemy: begin
+                      if ID = gMySpectator.HandID then
+                        Result := gGameApp.GameSettings.PlayerColorSelf
+                      else if (Alliances[gMySpectator.HandID] = atAlly) then
+                        Result := gGameApp.GameSettings.PlayerColorAlly
+                      else
+                        Result := gGameApp.GameSettings.PlayerColorEnemy;
+                    end;
+      pcmTeams:     Result := fTeamColor;
     end;
+
   end;
 end;
 
@@ -1453,6 +1467,9 @@ procedure TKMHand.SetAlliances(aIndex: Integer; aValue: TKMAllianceType);
 begin
   fAlliances[aIndex] := aValue;
   gAIFields.Supervisor.UpdateAlliances();
+
+  if Assigned(fOnAllianceChange) then
+    fOnAllianceChange;
 end;
 
 

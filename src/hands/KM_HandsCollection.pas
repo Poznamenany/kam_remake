@@ -15,7 +15,14 @@ type
     fCount: Byte;
     fHandsList: array of TKMHand;
     fPlayerAnimals: TKMHandAnimals;
+    fTeams: TKMByteSetArray;
+    fTeamsDirty: Boolean; //Need to recalc teams
+
+    function GetTeams: TKMByteSetArray;
+    function GetTeamsLazy: TKMByteSetArray;
     function GetHand(aIndex: Integer): TKMHand; inline;
+    procedure SetHandsTeamColors;
+    procedure AllianceChanged;
   public
     constructor Create;
     destructor Destroy; override;
@@ -58,8 +65,8 @@ type
     //Note: this is position dependant, e.g. Player1 may be allied with
     //      Player2, but Player2 could be an enemy to Player1
     function CheckAlliance(aPlay1, aPlay2: TKMHandID): TKMAllianceType;
-    function GetTeams: TKMByteSetArray;
-    function GetFullTeams: TKMByteSetArray;
+    function GetTeamsOfAllies: TKMByteSetArray;
+    property Teams: TKMByteSetArray read GetTeamsLazy;
     procedure CleanUpUnitPointer(var aUnit: TKMUnit);
     procedure CleanUpGroupPointer(var aGroup: TKMUnitGroup);
     procedure CleanUpHousePointer(var aHouse: TKMHouse);
@@ -103,6 +110,8 @@ constructor TKMHandsCollection.Create;
 begin
   inherited Create;
 
+  fTeamsDirty := True;
+
   fPlayerAnimals := TKMHandAnimals.Create(PLAYER_ANIMAL); //Always create Animals
 end;
 
@@ -137,7 +146,7 @@ begin
   SetLength(fHandsList, fCount + aCount);
 
   for I := fCount to fCount + aCount - 1 do
-    fHandsList[I] := TKMHand.Create(I);
+    fHandsList[I] := TKMHand.Create(I, AllianceChanged);
 
   //Default alliance settings for new players:
   //Existing players treat any new players as enemies
@@ -162,6 +171,8 @@ var
   I: Integer;
 begin
   gAIFields.AfterMissionInit;
+
+  GetTeamsLazy;
 
   for I := 0 to fCount - 1 do
     fHandsList[I].AfterMissionInit(aFlattenRoads);
@@ -653,7 +664,7 @@ end;
 //Basically that mean standart team in MP game.
 //All other possible options, f.e. smth like 1-2 are allied to each other, 3-4 - are also allied, but 5 is allied to 1-2-3-4 we do not consider as team
 //other example - 1-2-3 ally/4-5-6 ally/1-7 ally - we have one standart team here: 4-5-6. 1 is allied to 7, but 2 is not, so non of them can be considered as a 'team'
-function TKMHandsCollection.GetTeams: TKMByteSetArray;
+function TKMHandsCollection.GetTeamsOfAllies: TKMByteSetArray;
 var
   Allies: TKMByteSetArray;
   I, J, K: Byte;
@@ -713,7 +724,7 @@ end;
 
 
 //Return Teams and NonTeam members as team with 1 hand only
-function TKMHandsCollection.GetFullTeams: TKMByteSetArray;
+function TKMHandsCollection.GetTeams: TKMByteSetArray;
 var
   I,K: Integer;
   Teams: TKMByteSetArray;
@@ -722,7 +733,7 @@ begin
   SetLength(Result, Count);
   K := 0;
 
-  Teams := gHands.GetTeams;
+  Teams := gHands.GetTeamsOfAllies;
   NonTeamHands := [0..gHands.Count - 1];
 
   //Get non team hands
@@ -743,6 +754,49 @@ begin
   end;
 
   SetLength(Result, K);
+end;
+
+
+//Lazy load for teams
+function TKMHandsCollection.GetTeamsLazy: TKMByteSetArray;
+begin
+  if fTeamsDirty then
+  begin
+    fTeams := GetTeams;
+    SetHandsTeamColors;
+  end;
+
+  fTeamsDirty := False;
+  Result := fTeams;
+end;
+
+
+procedure TKMHandsCollection.SetHandsTeamColors;
+var
+  I,J: Integer;
+  TeamColorInit: Boolean;
+  TeamColor: Cardinal;
+begin
+  TeamColor := icBlack;
+  for I := 0 to Length(fTeams) - 1 do
+  begin
+    TeamColorInit := False;
+    for J in fTeams[I] do
+    begin
+      if not TeamColorInit then
+      begin
+        TeamColorInit := True;
+        TeamColor := fHandsList[J].FlagColor;
+      end;
+      fHandsList[J].TeamColor := TeamColor;
+    end;
+  end;
+end;
+
+
+procedure TKMHandsCollection.AllianceChanged;
+begin
+  fTeamsDirty := True; //Forced re
 end;
 
 
@@ -870,10 +924,12 @@ begin
 
   for I := 0 to fCount - 1 do
   begin
-    fHandsList[I] := TKMHand.Create(0);
+    fHandsList[I] := TKMHand.Create(0, AllianceChanged);
     fHandsList[I].Load(LoadStream);
   end;
   PlayerAnimals.Load(LoadStream);
+
+  fTeamsDirty := True; //Always reload teams after load
 end;
 
 
@@ -885,6 +941,8 @@ begin
     fHandsList[I].SyncLoad;
 
   PlayerAnimals.SyncLoad;
+
+  GetTeamsLazy;
 end;
 
 
@@ -931,7 +989,7 @@ begin
     SL.Append('Game time:;' + TimeToString(gGame.MissionTime));
 
     //Teams info
-    Teams := GetFullTeams;
+    Teams := GetTeams;
 
     TStr := 'Teams: ';
     for J := Low(Teams) to High(Teams) do

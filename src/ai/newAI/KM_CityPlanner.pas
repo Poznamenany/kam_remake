@@ -13,24 +13,45 @@ var
   GA_PLANNER_FindPlaceForHouse_AllyInfluence          : Single = 10; // 0..XXX
   GA_PLANNER_FindPlaceForHouse_EnemyInfluence         : Single = 60; // 0..XXX
   GA_PLANNER_FindPlaceForWoodcutter_Influence         : Single = 40; // 0..255
+  {
+  GA_PLANNER_ObstaclesInHousePlan_Tree                : Single = 124.624; // 0-3+
+  GA_PLANNER_ObstaclesInHousePlan_Road                : Single = 137.4697; // 0-5+
+  GA_PLANNER_FieldCrit_PolyRoute                      : Single =  35.929; // 0-255
+  GA_PLANNER_FieldCrit_FlatArea                       : Single =  40.450; // 0-82
+  GA_PLANNER_FieldCrit_Soil                           : Single =  57.084; // 0-82
+  GA_PLANNER_SnapCrit_SnapToHouse                     : Single =  20.604; // 0-5+
+  GA_PLANNER_SnapCrit_SnapToFields                    : Single =   2.291; // 0-5+
+  GA_PLANNER_SnapCrit_SnapToRoads                     : Single =  79.585; // 0-5+
+  GA_PLANNER_SnapCrit_ClearEntrance                   : Single =  57.568; // 0-6
+  GA_PLANNER_FindPlaceForHouse_SnapCrit               : Single =   4.843; // var
+  GA_PLANNER_FindPlaceForHouse_HouseDist              : Single =  59.141; // 3-100+
+  GA_PLANNER_FindPlaceForHouse_SeedDist               : Single =   1.000; // 3-30
+  GA_PLANNER_FindPlaceForHouse_CityCenter             : Single =  14.352; // 3-100+
+  GA_PLANNER_FindPlaceForHouse_Route                  : Single =  10.000; // 0-255
+  GA_PLANNER_FindPlaceForHouse_FlatArea               : Single =  93.710; // 0-82
+  GA_PLANNER_PlaceWoodcutter_DistFromForest           : Single =  66.286; // 0-X
+  }
 
-  GA_PLANNER_ObstaclesInHousePlan_Tree                : Single = 124.624;
-  GA_PLANNER_ObstaclesInHousePlan_Road                : Single = 137.4697;
-  GA_PLANNER_FieldCrit_PolyRoute                      : Single =  35.929;
-  GA_PLANNER_FieldCrit_FlatArea                       : Single =  40.450;
-  GA_PLANNER_FieldCrit_Soil                           : Single =  57.084;
-  GA_PLANNER_SnapCrit_SnapToHouse                     : Single =  20.604;
-  GA_PLANNER_SnapCrit_SnapToFields                    : Single =   2.291;
-  GA_PLANNER_SnapCrit_SnapToRoads                     : Single =  79.585;
-  GA_PLANNER_SnapCrit_ClearEntrance                   : Single =  57.568;
-  GA_PLANNER_FindPlaceForHouse_SnapCrit               : Single =   4.843;
-  GA_PLANNER_FindPlaceForHouse_HouseDist              : Single =  59.141;
-  GA_PLANNER_FindPlaceForHouse_SeedDist               : Single =   1.000;
-  GA_PLANNER_FindPlaceForHouse_CityCenter             : Single =  14.352;
-  GA_PLANNER_FindPlaceForHouse_Route                  : Single =  10.000;
-  GA_PLANNER_FindPlaceForHouse_FlatArea               : Single =  93.710;
+GA_PLANNER_ObstaclesInHousePlan_Tree       : Single = 0;
+GA_PLANNER_ObstaclesInHousePlan_Road       : Single = 150;
+GA_PLANNER_FieldCrit_PolyRoute             : Single = 0;
+GA_PLANNER_FieldCrit_FlatArea              : Single = 0;
+GA_PLANNER_FieldCrit_Soil                  : Single = 0;
+GA_PLANNER_SnapCrit_SnapToHouse            : Single = 50;
+GA_PLANNER_SnapCrit_SnapToFields           : Single = 50;
+GA_PLANNER_SnapCrit_SnapToRoads            : Single = 0;
+GA_PLANNER_SnapCrit_ClearEntrance          : Single = 49.4826126098632812;
+GA_PLANNER_FindPlaceForHouse_SnapCrit      : Single = 0;
+GA_PLANNER_FindPlaceForHouse_HouseDist     : Single = 0;
+GA_PLANNER_FindPlaceForHouse_SeedDist      : Single = 50;
+GA_PLANNER_FindPlaceForHouse_CityCenter    : Single = 0;
+GA_PLANNER_FindPlaceForHouse_Route         : Single = 0;
+GA_PLANNER_FindPlaceForHouse_FlatArea      : Single = 0;
+GA_PLANNER_PlaceWoodcutter_DistFromForest  : Single = 0.732519686222076416;
 
-  GA_PLANNER_PlaceWoodcutter_DistFromForest           : Single =  66.286;
+
+
+
 
   GA_PLANNER_FindPlaceForWoodcutter_TreeCnt           : Single =   2.812; // 0-~20
   GA_PLANNER_FindPlaceForWoodcutter_ExistForest       : Single = 200.529; // 0-1
@@ -772,7 +793,7 @@ function TKMCityPlanner.GetRoadToHouse(aHT: TKMHouseType; aIdx: Integer; var aFi
   begin
     Result := (gAIFields.Influences.AvoidBuilding[aP.Y, aP.X] = AVOID_BUILDING_NODE_LOCK_ROAD) // Reserved road plan
               OR (tpWalkRoad in gTerrain.Land[aP.Y, aP.X].Passability)                         // Completed road
-              OR (gHands[fOwner].BuildList.FieldworksList.HasField(aP) = ftRoad)              // Placed road plan
+              OR (gHands[fOwner].BuildList.FieldworksList.HasField(aP) = ftRoad)               // Placed road plan
               OR (gTerrain.Land[aP.Y, aP.X].TileLock = tlRoadWork);                            // Road under construction
   end;
 // New house plan may overlap existing road -> new road must be done (new road will extend aField list)
@@ -834,7 +855,8 @@ function TKMCityPlanner.GetRoadToHouse(aHT: TKMHouseType; aIdx: Integer; var aFi
     BestDist := INIT_DIST;
     for HT := HOUSE_MIN to HOUSE_MAX do
       for K := 0 to fPlannedHouses[HT].Count - 1 do
-        if ((HT <> htWatchTower) OR (fPlannedHouses[HT].Plans[K].Placed))// Only placed houses in case of WatchTower
+        //if ((HT <> htWatchTower) OR (fPlannedHouses[HT].Plans[K].Placed))// Only placed houses in case of WatchTower
+        if (fPlannedHouses[HT].Plans[K].Placed)// Only placed houses in case of WatchTower
            AND not fPlannedHouses[HT].Plans[K].RemoveTreeInPlanProcedure // Ignore Remove tree in plan procedure because there is not builded road
            AND not KMSamePoint(fPlannedHouses[HT].Plans[K].Loc, aNewLoc) // Ignore itself
            AND ((HT <> htWoodcutters) OR not fPlannedHouses[HT].Plans[K].ChopOnly) // Chop only woodcutters are planned without road connection so skip it

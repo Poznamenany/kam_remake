@@ -201,9 +201,9 @@ begin
           Dec(GroupReq[GT]);
           //Only reset it when we actually trained something (in IronThenLeather mode we don't count them separately)
           if (UT in WARRIORS_IRON) or (fSetup.ArmyType = atIronThenLeather) then
-            fLastEquippedTimeIron := gGame.GameTickCount;
+            fLastEquippedTimeIron := gGame.GameTick;
           if not (UT in WARRIORS_IRON) or (fSetup.ArmyType = atIronThenLeather) then
-            fLastEquippedTimeLeather := gGame.GameTickCount;
+            fLastEquippedTimeLeather := gGame.GameTick;
         end;
     end;
   end;
@@ -332,7 +332,7 @@ begin
 
     //Now process AI attacks (we have compiled a list of warriors available to attack)
     for I := 0 to Attacks.Count - 1 do
-    if Attacks.CanOccur(I, MenAvailable, GroupsAvailable, gGame.GameTickCount) then //Check conditions are right
+    if Attacks.CanOccur(I, MenAvailable, GroupsAvailable, gGame.GameTick) then //Check conditions are right
     begin
       AttackLaunched := True;
       //Order groups to attack

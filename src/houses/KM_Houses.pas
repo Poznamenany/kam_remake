@@ -21,7 +21,7 @@ type
   TKMHouseSketchType = (hstHousePlan, hstHouse);
   TKMHouseSketchTypeSet = set of TKMHouseSketchType;
 
-  TAnonHouseSketchBoolFn = reference to function(aSketch: TKMHouseSketch): Boolean;
+  TAnonHouseSketchBoolFn = reference to function(aSketch: TKMHouseSketch; aBoolParam: Boolean): Boolean;
 
   TKMHouseAction = class
   private
@@ -122,7 +122,9 @@ type
     fPointerCount: Cardinal;
     fTimeSinceUnoccupiedReminder: Integer;
     fDisableUnoccupiedMessage: Boolean;
-    fIssueOrderCompletedMsg: Boolean;
+    fResourceDepletedMsgIssued: Boolean;
+    fOrderCompletedMsgIssued: Boolean;
+    fNeedIssueOrderCompletedMsg: Boolean;
 
     procedure CheckOnSnow;
 
@@ -151,7 +153,6 @@ type
   public
     CurrentAction: TKMHouseAction; //Current action, withing HouseTask or idle
     WorkAnimStep: Cardinal; //Used for Work and etc.. which is not in sync with Flags
-    ResourceDepletedMsgIssued: Boolean;
     DoorwayUse: Byte; //number of units using our door way. Used for sliding.
     OnDestroyed: TKMHouseFromEvent;
 
@@ -185,6 +186,9 @@ type
     procedure SetPrevDeliveryMode;
     procedure SetDeliveryModeInstantly(aValue: TKMDeliveryMode);
     function AllowDeliveryModeChange: Boolean;
+
+    property ResourceDepletedMsgIssued: Boolean read fResourceDepletedMsgIssued write fResourceDepletedMsgIssued;
+    property OrderCompletedMsgIssued: Boolean read fOrderCompletedMsgIssued;
 
     function ShouldAbandonDelivery(aWareType: TKMWareType): Boolean; virtual;
 
@@ -484,8 +488,9 @@ begin
   fPointerCount := 0;
   fTimeSinceUnoccupiedReminder := TIME_BETWEEN_MESSAGES;
 
-  ResourceDepletedMsgIssued := False;
-  fIssueOrderCompletedMsg := False;
+  fResourceDepletedMsgIssued := False;
+  fNeedIssueOrderCompletedMsg := False;
+  fOrderCompletedMsgIssued := False;
 
   if aBuildState = hbsDone then //House was placed on map already Built e.g. in mission maker
   begin
@@ -542,7 +547,8 @@ begin
   LoadStream.Read(fPointerCount);
   LoadStream.Read(fTimeSinceUnoccupiedReminder);
   LoadStream.Read(fDisableUnoccupiedMessage);
-  LoadStream.Read(fIssueOrderCompletedMsg);
+  LoadStream.Read(fNeedIssueOrderCompletedMsg);
+  LoadStream.Read(fOrderCompletedMsgIssued);
   LoadStream.Read(fUID);
   LoadStream.Read(HasAct);
   if HasAct then
@@ -550,7 +556,7 @@ begin
     CurrentAction := TKMHouseAction.Create(nil, hstEmpty); //Create action object
     CurrentAction.Load(LoadStream); //Load actual data into object
   end;
-  LoadStream.Read(ResourceDepletedMsgIssued);
+  LoadStream.Read(fResourceDepletedMsgIssued);
   LoadStream.Read(DoorwayUse);
 end;
 
@@ -1275,7 +1281,8 @@ begin
   for I := 1 to 4 do
     fResOrderDesired[I] := fResourceOrder[I] / TotalDesired;
 
-  fIssueOrderCompletedMsg := false;
+  fNeedIssueOrderCompletedMsg := False;
+  fOrderCompletedMsgIssued := False;
 end;
 
 
@@ -1345,15 +1352,17 @@ begin
   if Result <> 0 then
   begin
     Dec(fResourceOrder[Result]);
-    fIssueOrderCompletedMsg := True;
+    fNeedIssueOrderCompletedMsg := True;
+    fOrderCompletedMsgIssued := False;
   end
   else
     //Check all orders are actually finished (input resources might be empty)
     if  (ResOrder[1] = 0) and (ResOrder[2] = 0)
     and (ResOrder[3] = 0) and (ResOrder[4] = 0) then
-      if fIssueOrderCompletedMsg then
+      if fNeedIssueOrderCompletedMsg then
       begin
-        fIssueOrderCompletedMsg := False;
+        fNeedIssueOrderCompletedMsg := False;
+        fOrderCompletedMsgIssued := True;
         gGame.ShowMessage(mkHouse, TX_MSG_ORDER_COMPLETED, Entrance, fOwner);
       end;
 end;
@@ -1734,12 +1743,13 @@ begin
   SaveStream.Write(fPointerCount);
   SaveStream.Write(fTimeSinceUnoccupiedReminder);
   SaveStream.Write(fDisableUnoccupiedMessage);
-  SaveStream.Write(fIssueOrderCompletedMsg);
+  SaveStream.Write(fNeedIssueOrderCompletedMsg);
+  SaveStream.Write(fOrderCompletedMsgIssued);
   SaveStream.Write(fUID);
   HasAct := CurrentAction <> nil;
   SaveStream.Write(HasAct);
   if HasAct then CurrentAction.Save(SaveStream);
-  SaveStream.Write(ResourceDepletedMsgIssued);
+  SaveStream.Write(fResourceDepletedMsgIssued);
   SaveStream.Write(DoorwayUse);
 end;
 

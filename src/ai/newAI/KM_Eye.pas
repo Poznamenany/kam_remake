@@ -150,6 +150,22 @@ type
   end;
 
 
+  TKMFFCheckStoneTiles = class(TKMQuickFlood)
+  private
+    fMapX, fMapY: Word;
+    fVisitIdx: Byte;
+    fVisitArr: TKMByteArray;
+    fStoneCnt, fStoneLimit: Integer;
+  protected
+    function CanBeVisited(const aX,aY: SmallInt): Boolean; override;
+    function IsVisited(const aX,aY: SmallInt): Boolean; override;
+    procedure MarkAsVisited(const aX,aY: SmallInt); override;
+  public
+    constructor Create(aStoneLimit: Integer; const aScanEightTiles: Boolean = False); reintroduce;
+    function CheckCount(aX,aY: SmallInt): Boolean;
+  end;
+
+
   // Transform game data into "AI view" ... this is how AI see the map (influences have its own class)
   TKMEye = class
   private
@@ -370,9 +386,12 @@ procedure TKMEye.AfterMissionInit();
   //    end;
   //  end;
   end;
+const
+  MIN_STONES_IN_MINE = 50;
 var
   X,Y: Integer;
   Loc: TKMPoint;
+  StoneCheck: TKMFFCheckStoneTiles;
 begin
   fArmyEvaluation.AfterMissionInit();
 
@@ -386,30 +405,35 @@ begin
   FillChar(fRoutes, fRoutes[0] * Length(fRoutes), #0);
   FillChar(fFlatArea, fFlatArea[0] * Length(fFlatArea), #0);
 
-  for Y := 1 to fMapY - 1 do
-  for X := 1 to fMapX - 1 do
-  begin
-    Loc := KMPoint(X,Y);
-    FlatArea[Y,X] := Byte(gTerrain.TileIsWalkable(Loc));
-    if gTerrain.TileIsSoil(X,Y) then
-      Soil[Y,X] := 1
-    //else if (gTerrain.TileIsCoal(X,Y) > 1) then
-    else if gTerrain.TileHasStone(X,Y) then
+  StoneCheck := TKMFFCheckStoneTiles.Create(MIN_STONES_IN_MINE);
+  try
+    for Y := 1 to fMapY - 1 do
+    for X := 1 to fMapX - 1 do
     begin
-      Soil[Y,X] := 1; // Stone tile can be mined and used for farms
-      if (Y < fMapY - 1) AND (tpWalk in gTerrain.Land[Y+1,X].Passability) then
-        fStoneMiningTiles.Add(Loc);
-    end
-    else if CanAddHousePlan(Loc, htGoldMine, True, False) then
-    begin
-      if CheckResourcesNearMine(Loc, htGoldMine) then
-        fGoldLocs.Add(Loc);
-    end
-    else if CanAddHousePlan(Loc, htIronMine, True, False) then
-    begin
-      if CheckResourcesNearMine(Loc, htIronMine) then
-        fIronLocs.Add(Loc);
+      Loc := KMPoint(X,Y);
+      FlatArea[Y,X] := Byte(gTerrain.TileIsWalkable(Loc));
+      if gTerrain.TileIsSoil(X,Y) then
+        Soil[Y,X] := 1
+      //else if (gTerrain.TileIsCoal(X,Y) > 1) then
+      else if gTerrain.TileHasStone(X,Y) then
+      begin
+        Soil[Y,X] := 1; // Stone tile can be mined and used for farms
+        if (Y < fMapY - 1) AND (tpWalk in gTerrain.Land[Y+1,X].Passability) AND  StoneCheck.CheckCount(X,Y) then
+          fStoneMiningTiles.Add(Loc);
+      end
+      else if CanAddHousePlan(Loc, htGoldMine, True, False) then
+      begin
+        if CheckResourcesNearMine(Loc, htGoldMine) then
+          fGoldLocs.Add(Loc);
+      end
+      else if CanAddHousePlan(Loc, htIronMine, True, False) then
+      begin
+        if CheckResourcesNearMine(Loc, htIronMine) then
+          fIronLocs.Add(Loc);
+      end;
     end;
+  finally
+    StoneCheck.Free();
   end;
   GeneralizeArray(4,fSoil);
   GeneralizeArray(4,fFlatArea);
@@ -1722,12 +1746,12 @@ var
 begin
   Planner := gHands[fOwner].AI.CityManagement.Builder.Planner;
 
-  if (fUpdateTick = 0) OR (fUpdateTick < gGame.GameTickCount) then // Dont scan multile times terrain in 1 tick
+  if (fUpdateTick = 0) OR (fUpdateTick < gGame.GameTick) then // Dont scan multile times terrain in 1 tick
   begin
     InitQueue(False);
     fOwnerUpdateInfo[fOwner] := fVisitIdx; // Debug tool
 
-    if (gGame.GameTickCount <= MAX_HANDS) then // Make sure that Planner is already updated otherwise take only available houses
+    if (gGame.GameTick <= MAX_HANDS) then // Make sure that Planner is already updated otherwise take only available houses
     begin
       for I := 0 to gHands[fOwner].Houses.Count - 1 do
       begin
@@ -1746,7 +1770,7 @@ begin
     end;
     TerrainFF();
 
-    fUpdateTick := gGame.GameTickCount;
+    fUpdateTick := gGame.GameTick;
     MarkPlans(); // Plans may change durring placing houses but this event is caught CityBuilder
   end;
 end;
@@ -1761,7 +1785,7 @@ end;
 
 procedure TKMBuildFF.ActualizeTile(aX, aY: Word);
 begin
-  if (fUpdateTick = gGame.GameTickCount) then // Actualize tile only when we need scan in this tick
+  if (fUpdateTick = gGame.GameTick) then // Actualize tile only when we need scan in this tick
     State[aY, aX] := GetTerrainState(aX,aY);
 end;
 
@@ -1868,6 +1892,55 @@ begin
       if (Y < fMapY-1) AND CanBeVisited(X,Y+1,Distance) then InsertInQueue(X,Y+1,Distance);
     end;
 end;
+
+
+
+{ TKMFFCheckStoneTiles }
+constructor TKMFFCheckStoneTiles.Create(aStoneLimit: Integer; const aScanEightTiles: Boolean = False);
+begin
+  inherited Create(aScanEightTiles);
+  fMapX := gTerrain.MapX;
+  fMapY := gTerrain.MapY;
+  fMinLimit := KMPoint(1,1);
+  fMaxLimit := KMPoint(fMapX-1,fMapY-1);
+  fStoneLimit := aStoneLimit;
+  fVisitIdx := 0;
+  SetLength(fVisitArr,fMapX*fMapY);
+end;
+
+
+function TKMFFCheckStoneTiles.CanBeVisited(const aX,aY: SmallInt): Boolean;
+begin
+  Result := gTerrain.TileHasStone(aX,aY) AND (fStoneLimit > fStoneCnt);
+end;
+
+
+function TKMFFCheckStoneTiles.IsVisited(const aX,aY: SmallInt): Boolean;
+begin
+  Result := fVisitArr[aY*fMapX + aX] = fVisitIdx;
+end;
+
+
+procedure TKMFFCheckStoneTiles.MarkAsVisited(const aX,aY: SmallInt);
+begin
+  fVisitArr[aY*fMapX + aX] := fVisitIdx;
+  fStoneCnt := fStoneCnt + gTerrain.TileIsStone(aX,aY)*3;
+end;
+
+
+function TKMFFCheckStoneTiles.CheckCount(aX,aY: SmallInt): Boolean;
+begin
+  if (fVisitIdx > 254) then
+  begin
+    fVisitIdx := 0;
+    FillChar(fVisitArr[0], SizeOf(fVisitArr[0]) * Length(fVisitArr), #0);
+  end;
+  fVisitIdx := fVisitIdx + 1;
+  fStoneCnt := 0;
+  QuickFlood(aX,aY);
+  Result := (fStoneLimit <= fStoneCnt);
+end;
+
 
 end.
 
