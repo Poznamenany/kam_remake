@@ -295,7 +295,7 @@ begin
   //There will be no change to image anyway
   if aValue = 0 then Exit;
 
-  TRender.BindTexture(0); // We have to reset texture to default (0), because it can be bind to any other texture (atlas)
+  TRender.BindTexture(0); // We have to reset texture to default (0), because it could be bind to any other texture (atlas)
 
   glLoadIdentity;
   glBlendFunc(GL_DST_COLOR, GL_ONE);

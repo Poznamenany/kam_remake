@@ -174,7 +174,7 @@ var
 begin
   //Clear out dead IDs every now and again
   //Leave them in the cache as nils, because we still might need to lookup that UID
-  if gGame.GameTickCount mod 11 = 0 then
+  if gGame.GameTick mod 11 = 0 then
   begin
     for I := Low(fUnitCache) to High(fUnitCache) do
       if (fUnitCache[I].U <> nil) and fUnitCache[I].U.IsDeadOrDying then

@@ -201,7 +201,7 @@ type
     procedure AnnounceDisconnect;
     procedure Disconnect;
     procedure DropPlayers(aPlayers: TKMByteArray);
-    function  Connected: boolean;
+    function  Connected: Boolean;
     procedure MatchPlayersToSave(aPlayerID: Integer = -1);
     procedure SelectNoMap(const aErrorMessage: UnicodeString);
     procedure SelectMap(const aName: UnicodeString; aMapFolder: TKMapFolder);
@@ -514,7 +514,7 @@ begin
 end;
 
 
-function TKMNetworking.Connected: boolean;
+function TKMNetworking.Connected: Boolean;
 begin
   Result := fNetClient.Connected;
 end;
@@ -586,7 +586,7 @@ begin
       if not fNetPlayers[I].IsSpectator then
         fNetPlayers[I].StartLocation := LOC_RANDOM;
 
-    for I := 1 to MAX_LOBBY_PLAYERS - fSaveInfo.Info.HumanCount - fNetPlayers.GetClosedCount
+    for I := 1 to MAX_LOBBY_PLAYERS - fSaveInfo.GameInfo.HumanCount - fNetPlayers.GetClosedCount
                                     - Max(fNetPlayers.GetSpectatorCount - MAX_LOBBY_SPECTATORS, 0) do
       //First 2 spectators don't count towards MAX_LOBBY_PLAYERS (separate section), but additional ones do
       if fNetPlayers.Count - Min(fNetPlayers.GetSpectatorCount, MAX_LOBBY_SPECTATORS) < MAX_LOBBY_PLAYERS then
@@ -595,13 +595,13 @@ begin
 
   //Match players based on their nicknames
   for I := 1 to fNetPlayers.Count do
-    for K := 1 to fSaveInfo.Info.PlayerCount do
-      if fSaveInfo.Info.Enabled[K-1]
+    for K := 1 to fSaveInfo.GameInfo.PlayerCount do
+      if fSaveInfo.GameInfo.Enabled[K-1]
       and ((I = aPlayerID) or (aPlayerID = -1)) //-1 means update all players
       and fNetPlayers.LocAvailable(K)
       and fNetPlayers[I].IsHuman
       and not fNetPlayers[I].IsSpectator
-      and (fNetPlayers[I].Nikname = fSaveInfo.Info.OwnerNikname[K-1]) then
+      and (fNetPlayers[I].Nikname = fSaveInfo.GameInfo.OwnerNikname[K-1]) then
       begin
         fNetPlayers[I].StartLocation := K;
         Break;
@@ -689,7 +689,7 @@ begin
 
   if not fSaveInfo.IsValid then
   begin
-    Error := fSaveInfo.Info.Title; //Make a copy since fSaveInfo is freed in SelectNoMap
+    Error := fSaveInfo.GameInfo.Title; //Make a copy since fSaveInfo is freed in SelectNoMap
     SelectNoMap(Error); //State the error, e.g. wrong version
     Exit;
   end;
@@ -800,7 +800,7 @@ end;
 procedure TKMNetworking.SelectColor(aIndex:integer; aPlayerIndex:integer);
 begin
   if not fNetPlayers.ColorAvailable(aIndex) then Exit;
-  if (fSelectGameKind = ngkSave) and SaveInfo.IsValid and SaveInfo.Info.ColorUsed(aIndex) then Exit;
+  if (fSelectGameKind = ngkSave) and SaveInfo.IsValid and SaveInfo.GameInfo.ColorUsed(aIndex) then Exit;
 
   //Host makes rules, Joiner will get confirmation from Host
   fNetPlayers[aPlayerIndex].FlagColorID := aIndex; //Use aPlayerIndex not fMyIndex because it could be an AI
@@ -963,10 +963,10 @@ begin
                 end;
               end;
     ngkSave: begin
-                HumanUsableLocs := fSaveInfo.Info.HumanUsableLocs;
+                HumanUsableLocs := fSaveInfo.GameInfo.HumanUsableLocs;
                 //AIs may replace humans
-                AIUsableLocs := fSaveInfo.Info.HumanUsableLocs;
-                AdvancedAIUsableLocs := fSaveInfo.Info.HumanUsableLocs;
+                AIUsableLocs := fSaveInfo.GameInfo.HumanUsableLocs;
+                AdvancedAIUsableLocs := fSaveInfo.GameInfo.HumanUsableLocs;
               end;
     else      begin
                 SetLength(HumanUsableLocs, 0);
@@ -1013,15 +1013,15 @@ begin
     for I := 1 to NetPlayers.Count do
       if (NetPlayers[I].StartLocation <> LOC_RANDOM) and (NetPlayers[I].StartLocation <> LOC_SPECTATE) then
       begin
-        NetPlayers[I].FlagColorID := fSaveInfo.Info.ColorID[NetPlayers[I].HandIndex];
-        NetPlayers[I].Team := fSaveInfo.Info.Team[NetPlayers[I].HandIndex];
+        NetPlayers[I].FlagColorID := fSaveInfo.GameInfo.ColorID[NetPlayers[I].HandIndex];
+        NetPlayers[I].Team := fSaveInfo.GameInfo.Team[NetPlayers[I].HandIndex];
       end
       else
       begin
         NetPlayers[I].Team := 0;
         //Spectators may still change their color, but may not use one from the save
         if (NetPlayers[I].FlagColorID <> 0)
-        and SaveInfo.Info.ColorUsed(NetPlayers[I].FlagColorID) then
+        and SaveInfo.GameInfo.ColorUsed(NetPlayers[I].FlagColorID) then
           NetPlayers[I].FlagColorID := 0;
       end;
 
@@ -1448,7 +1448,7 @@ begin
   if (aLoc <> LOC_SPECTATE) and (aLoc <> LOC_RANDOM) then
     case fSelectGameKind of
       ngkMap:  Result := (fMapInfo <> nil) and fMapInfo.IsValid and (aLoc <= fMapInfo.LocCount);
-      ngkSave: Result := (fSaveInfo <> nil) and fSaveInfo.IsValid and (aLoc <= fSaveInfo.Info.PlayerCount);
+      ngkSave: Result := (fSaveInfo <> nil) and fSaveInfo.IsValid and (aLoc <= fSaveInfo.GameInfo.PlayerCount);
       ngkNone: Result := False;
     end;
 
@@ -1996,7 +1996,7 @@ begin
                                         [gResTexts[TX_PAUSED_FILE_MISMATCH], BoolToStr(fSaveInfo.IsValid),
                                          BoolToStr(fSaveInfo.CRC <> tmpCardinal), fSaveInfo.Path + fSaveInfo.FileName + EXT_SAVE_MAIN_DOT,
                                          BoolToStr(FileExists(fSaveInfo.Path + fSaveInfo.FileName + EXT_SAVE_MAIN_DOT)), fSaveInfo.SaveError,
-                                         fSaveInfo.Info.IsValid(True)]));
+                                         fSaveInfo.GameInfo.IsValid(True)]));
                     fSelectGameKind := ngkNone;
                     FreeAndNil(fSaveInfo);
                     if Assigned(fOnMapName) then fOnMapName('');
@@ -2060,7 +2060,7 @@ begin
                 ColorID := tmpInteger;
                 //The player list could have changed since the joiner sent this request (over slow connection)
                 if fNetPlayers.ColorAvailable(ColorID)
-                and ((fSelectGameKind <> ngkSave) or not SaveInfo.IsValid or not SaveInfo.Info.ColorUsed(ColorID)) then
+                and ((fSelectGameKind <> ngkSave) or not SaveInfo.IsValid or not SaveInfo.GameInfo.ColorUsed(ColorID)) then
                 begin
                   fNetPlayers[fNetPlayers.ServerToLocal(aSenderIndex)].FlagColorID := ColorID;
                   SendPlayerListAndRefreshPlayersSetup;
@@ -2466,7 +2466,7 @@ begin
     if (fNetGameState in [lgsLobby, lgsLoading]) then
     begin
       case fSelectGameKind of
-        ngkSave: aMap := fSaveInfo.Info.Title;
+        ngkSave: aMap := fSaveInfo.GameInfo.Title;
         ngkMap:  aMap := fMapInfo.FileName;
         else      aMap := '';
       end;
