@@ -1499,7 +1499,7 @@ begin
   UpdateOfferItem(iO);
   UpdateDemandItem(iD);
 
-  gLog.LogDelivery('Creating delivery ID '+ IntToStr(I));
+  gLog.LogDelivery('Creating delivery ID ' + IntToStr(I));
 
   //Now we have best job and can perform it
   if fDemand[iD].Loc_House <> nil then

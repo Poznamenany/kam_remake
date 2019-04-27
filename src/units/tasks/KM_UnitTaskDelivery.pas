@@ -67,7 +67,8 @@ begin
 
   Assert((aFrom <> nil) and (aToHouse <> nil) and (Res <> wtNone), 'Serf ' + IntToStr(fUnit.UID) + ': invalid delivery task');
 
-  gLog.LogDelivery('Serf ' + IntToStr(fUnit.UID) + ' created delivery task ' + IntToStr(fDeliverID));
+  if gLog.CanLogDelivery then
+    gLog.LogDelivery('Serf ' + IntToStr(fUnit.UID) + ' created delivery task ' + IntToStr(fDeliverID));
 
   FromHouse := aFrom.GetHousePointer; //Also will set fPointBelowFromHouse
   ToHouse := aToHouse.GetHousePointer; //Also will set fPointBelowToHouse
@@ -89,7 +90,9 @@ begin
   fType := uttDeliver;
 
   Assert((aFrom <> nil) and (aToUnit <> nil) and ((aToUnit is TKMUnitWarrior) or (aToUnit is TKMUnitWorker)) and (Res <> wtNone), 'Serf '+inttostr(fUnit.UID)+': invalid delivery task');
-  gLog.LogDelivery('Serf ' + IntToStr(fUnit.UID) + ' created delivery task ' + IntToStr(fDeliverID));
+
+  if gLog.CanLogDelivery then
+    gLog.LogDelivery('Serf ' + IntToStr(fUnit.UID) + ' created delivery task ' + IntToStr(fDeliverID));
 
   fFrom    := aFrom.GetHousePointer;
   fToUnit  := aToUnit.GetUnitPointer;
@@ -152,7 +155,8 @@ end;
 
 destructor TKMTaskDeliver.Destroy;
 begin
-  gLog.LogDelivery('Serf ' + IntToStr(fUnit.UID) + ' abandoned delivery task ' + IntToStr(fDeliverID) + ' at phase ' + IntToStr(fPhase));
+  if gLog.CanLogDelivery then
+    gLog.LogDelivery('Serf ' + IntToStr(fUnit.UID) + ' abandoned delivery task ' + IntToStr(fDeliverID) + ' at phase ' + IntToStr(fPhase));
 
   if fUnit <> nil then
   begin
