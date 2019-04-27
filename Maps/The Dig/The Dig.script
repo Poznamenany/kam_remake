@@ -1,0 +1,100 @@
+//-- The Dig --//
+//By Strangelove
+//v0.9
+//30.03.2019
+//Developed for r9700 (new exe)
+
+//{$I dynamicmap.script}
+{$I improvestaticai.script}
+
+var
+	aKnightGroup: array of Integer;
+	bAttack: Boolean;
+
+	
+procedure OnMissionStart();
+begin
+	bAttack := false;
+	Actions.UnitKill(States.UnitAt(1, 95), true); //Kill Unit that was needed to activate player
+	//Add Soundeffects
+	//Actions.PlayWAVAtLocationLooped(-1, 'Waterfall1', 0.6, 32, 108, 41);
+	//Actions.PlayWAVAtLocationLooped(-1, 'Waterfall1', 1.0, 32, 108, 91);
+	SetLength(aKnightGroup, 2);
+				Actions.AIGroupsFormationSet(8, 3, 9, 3);
+				aKnightGroup[0] := Actions.GiveGroup(8, 22, 5, 75, 0, 12, 4);
+				aKnightGroup[1] := Actions.GiveGroup(8, 22, 11, 74, 0, 12, 4);
+	//Add Enemy Knights for initial attack according to difficulty settings
+	case States.MissionDifficulty() of
+		mdEasy: 	
+			begin
+				SetLength(aKnightGroup, 2);
+				Actions.AIGroupsFormationSet(8, 3, 9, 3);
+				aKnightGroup[0] := Actions.GiveGroup(8, 22, 5, 75, 0, 12, 4);
+				aKnightGroup[1] := Actions.GiveGroup(8, 22, 11, 74, 0, 12, 4);
+			end;
+		mdNormal:
+			begin
+				SetLength(aKnightGroup, 3);
+				Actions.AIGroupsFormationSet(8, 3, 9, 3);
+				aKnightGroup[0] := Actions.GiveGroup(8, 22, 3, 75, 0, 9, 3);
+				aKnightGroup[1] := Actions.GiveGroup(8, 22, 8, 74, 0, 9, 3);
+				aKnightGroup[2] := Actions.GiveGroup(8, 22, 13, 73, 0, 9, 3);
+			end;
+		mdHard:
+			begin
+				SetLength(aKnightGroup, 3);
+				Actions.AIGroupsFormationSet(8, 3, 12, 4);
+				aKnightGroup[0] := Actions.GiveGroup(8, 22, 4, 75, 0, 12, 4);
+				aKnightGroup[1] := Actions.GiveGroup(8, 22, 9, 74, 0, 12, 4);
+				aKnightGroup[2] := Actions.GiveGroup(8, 22, 14, 73, 0, 12, 4);
+			end;
+	end;
+end;
+
+procedure OnTick();
+var
+	k: Byte;
+begin
+	//Make Waterfalls more dynamic (Change end tiles) Not automated yet...
+	//if States.GameTime() mod 6 = 0 then
+	//	ChangeWaterfallEndTiles(108, 109, 91);
+	
+	//Schedule initial Msg & Attacks
+	if States.GameTime() = 1500 then //@2.5Minutes
+		Actions.ShowMsg(2, '<$0>');
+	//Knights targetting Village
+	if States.GameTime() = 2400 then //@4Minutes
+		bAttack := true;
+	if States.GameTime() = 2700 then //@4.5Minutes
+	begin
+		Actions.ShowMsg(0, '<$1>');
+		Actions.ShowMsg(1, '<$1>');
+	end;
+	
+	//Add additional Attack Positions
+	if States.GameTime() = 72000 then //@120Minutes
+	begin
+		Actions.AIDefencePositionAdd(3, 38, 96, 2, 0, 21, 1); //Melee
+		Actions.AIDefencePositionAdd(3, 38, 102, 2, 0, 21, 1);
+		Actions.AIDefencePositionAdd(3, 34, 99, 2, 2, 21, 1); //Ranged
+		Actions.AIDefencePositionAdd(3, 30, 97, 2, 1, 21, 1); //Antihorse
+	end;
+
+	//Repeat attacking until all groups are dead
+	if bAttack then
+	begin
+		if States.GameTime() mod 61 = 0 then
+			for k := 0 to Length(aKnightGroup) -1 do
+				if (aKnightGroup[k] <> -1) then
+					if not States.GroupDead(aKnightGroup[k]) then
+					begin
+						if States.GroupIdle(aKnightGroup[k]) then
+							Actions.GroupOrderAttackHouse(aKnightGroup[k], States.ClosestHouse(2, States.UnitPositionX(States.GroupMember(aKnightGroup[k], 0)), States.UnitPositionY(States.GroupMember(aKnightGroup[k], 0)), -1)); //Attack closest House of Player2
+					end else
+					begin
+						aKnightGroup[k] := -1;
+						if Utils.ArrayElementCountI(-1, aKnightGroup) = Length(aKnightGroup) then
+							bAttack := false;
+					end;
+	end;	
+end;  

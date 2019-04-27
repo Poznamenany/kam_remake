@@ -16,7 +16,7 @@
 *.rar
 *.log.txt
 bugreport.txt
-/bat/bat_rsvars_local.bat
+/bat/rsvars_local.bat
 /KaM_Remake.drc
 /KaM_Remake.map
 /KaM_Remake.res

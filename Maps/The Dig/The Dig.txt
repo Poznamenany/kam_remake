@@ -1,0 +1,17 @@
+Author
+Strangelove
+
+SmallDesc
+Coop Mission by Strangelove
+
+BigDesc
+The northern Village has been suffering under the rule of the tyrant for far too long now. Finally, their cry for help has been heard. Liberate the village before it is crushed by the surrounding enemy forces and drive them from these lands.||Coop Mission for 3 Players by Strangelove||Version 0.9 (Beta)|(30.03.2019)
+
+SetCoop
+
+BlockPeacetime
+
+BlockTeamSelection
+
+BlockFullMapPreview
+

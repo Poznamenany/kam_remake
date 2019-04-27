@@ -1,0 +1,43 @@
+The Dig
+*******
+
+Version 0.8b (22.02.2018):
+- Fixed evaluation Bug on bottom and right border
+- Slightly adjusted recruitment delay of AIs so the first attacks do not overlap
+- Replaced 12 Militia of Player02 with 8 Barbarians to make initial attack a little easier to hold
+
+Version 0.8c (25.02.2018):
+- Increased Iron Equip Rate of Player3 from 60 to 50 (First attack now happens earlier)
+- Modified initial attacks of Player5/6/7 to "Take Random"
+- Disallowed Player3 from building Militia
+- Added additional Defence Positions for Player7
+- Added additional Defence Positions for Player5
+- Increased Leather Equip Rate of Player7 from 40 to 30 (First attack on Player1 happens @70min now)
+- Increased Iron Equip Rate of Player4 from 55 to 45
+- Increased Iron Equip Rate of Player5 from 60 to 50
+- Set Player4 to Iron only
+- Increased Fish population in the biggest river from 180 to 220
+- Increased Fish population in the nothern lake from 80 to 100
+- Increased "Recruits in Barracks" for all AI Players by 5
+
+Version 0.8d (26.02.2018):
+- Cleaned up main script and moved code to supporting scripts
+- Now requires KaMRemake version r8746+
+
+Version 0.8e: (17.03.2018)
+- Updated improvestaticai.script to the newest version
+
+Version 0.8f: (03.09.2018)
+- Disabled 'dynamicmap.script' (There have been some changes to the syntax and the script didn't work anymore)
+
+Version 0.8g: (24.03.2019)
+- Moved Woodcutter of Player3 to another position
+- Added another School for Player3
+- Added Gold to 2nd Storehouse of Player3
+- Increased Recruitment Rate of Player3 from 50 to 45
+- Changed Coordinates for added attack positions of Player3
+- Set Player5 to Iron only (was recuriting only Leather troops before for some reason)
+
+Version 9.0: (30.03.2019):
+- Activated Fast Equip for Player4
+- Changes to script: First Attack on Player2 now scales with difficulty setting and behaves a little smarter

@@ -1,7 +1,8 @@
 unit Unit_Runner;
 {$I KaM_Remake.inc}
 interface
-uses Classes, Math, SysUtils,
+uses
+  Classes, Math, SysUtils,
   KM_Defaults, KM_CommonClasses, KM_CommonTypes, KromUtils,
   KM_GameApp, KM_ResLocales, KM_Log, KM_ResTexts, KM_CommonUtils, KM_RenderControl, ComInterface;
 
@@ -150,6 +151,7 @@ begin
 
   gGameApp := TKMGameApp.Create(fRenderTarget, tgtWidth, tgtHeight, False, nil, nil, nil, True);
   gGameApp.GameSettings.Autosave := False;
+  gGameApp.PreloadGameResources;
 end;
 
 

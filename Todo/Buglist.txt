@@ -7,6 +7,7 @@ Bugs:
  +  Armour smithy has iron as 1st input, weapon smithy has iron as 2nd input (iron/coal swapped). Would make sense to match them (note: simpply swapping in KM_ResourceHouses causes game logic to be swapped with GUI)
  +  Armour smithy has shields as 2nd output, armour workshop has shields as 1st output. Would make sense to match them (note: simply swapping in KM_ResourceHouses causes game logic to be swapped with GUI)
  +  When units exit Barracks and auto-join another group, they change that groups formation
+ +  Group do not get halt order anymore (and stop attack) when warrior die while group is attacking house, when group is linked with other group, when just trained warrior joined group, after split order
  +  Disabled controls could have focus and receive keyboard input
  +  Colored rectangle below cursor
  +  Fix situation, when 1 worker, constructing house from the entrance tile, blocks wood/stone delivery by serfs
@@ -142,7 +143,8 @@ Improvements:
  
  Game menu:
  +    Added difficulty levels for SP/MP/Campaigns missions on their menus. Those levels could be obtained from the script and adjust mission accordingly
- +    Game speed calculation is improved, that is why we need to reevaluate lobby game speed into values x1 - x1.25 - x1.5 - x1.75 - x2. Actual game speed remains the same
+ +    Added replay rewind (only backwards to number of savepoints)
+ +    Improved game speed calculation, that is why we need to reevaluate lobby game speed into values x1 - x1.25 - x1.5 - x1.75 - x2. Actual game speed remains the same
  +    New ability to mute annoying player in chat (both lobby chat and game chat) - text and also beacons
  +    Show message in chat for AFK players
  +    Added game chat enter history (console-like)

@@ -1134,7 +1134,7 @@
 1185:Go to selected house
 1186:Go to selected unit
 1187:Ally / enemy |color mode
-1188:Use self / ally / enemy colors for players instead of initial player colors
+1188:Self/ally/enemy colors for players instead of initial player colors
 1189:[$404040]Host is ready to start. Please press '[][$0707FF]%s[][$404040]'[]
 1190:Ask to press Ready
 1191:Alert to get ready was sent to %s players
@@ -1181,7 +1181,7 @@
 1232:Take every group type
 1233:Difficulty
 1234:%s is away from keyboard for last %s [$00B0FF]minutes[]
-1235:Ally / enemy
+1235:Data export could take up to several minutes.\nExported data will be stored in '%s' folder.\nDo you confirm operation?
 1236:The procedure [ %s ] declared for the script console command /%s was not found
 1237:Wrong parameter type for script command /%s: [%s] 
 1238:Wrong first parameter type for script command /%s. Expected: [%s], actual: [%s] 
@@ -1192,3 +1192,13 @@
 1243:Error while calling script command /%s(%s)
 1244:Script console command /%s not found
 1245:Enable/Disable copy-paste from chat window
+1246:Save replay state to be able to load while watching this replay
+1247:Load replay at %s
+1248:Players colors:
+1249:Default
+1250:Ally / Enemy
+1251:Teams
+1252:Show initial players colors
+1253:Show self / ally / enemy players colors
+1254:Show teams colors
+1255:Error: Player name '%s' is reserved

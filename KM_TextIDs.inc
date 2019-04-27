@@ -406,6 +406,7 @@ TX_GAME_ERROR_NETWORK = 347; //Network error:
 TX_GAME_ERROR_BLANK_PLAYERNAME = 348; //Error: Player name must not be blank
 TX_GAME_ERROR_LONG_PLAYERNAME = 349; //Error: Player name must be no more than %d characters long
 TX_GAME_ERROR_ILLEGAL_PLAYERNAME = 350; //Error: Player name contains illegal characters
+TX_GAME_ERROR_RESERVER_PLAYERNAME = 1255; //Error: Player name '%s' is reserved
 TX_GAME_ERROR_CONNECTION_FAILED = 351; //Connection failed: %s
 TX_GAME_ERROR_DISCONNECT = 352; //You have disconnected
 TX_GAME_MISSION = 353; //Mission %d
@@ -420,6 +421,8 @@ TX_REPLAY_RESUME = 360; //Resume paused replay
 TX_REPLAY_QUIT = 361; //Quit replay
 TX_REPLAY_PLAYER_PERSPECTIVE = 362; //Toggle individual player perspective
 TX_REPLAY_SHOW_FOG = 771; //Show fog
+TX_REPLAY_SAVE_AT = 1246; //Save replay state to be able to load while watching this replay
+TX_REPLAY_LOAD_AT_HINT = 1247; //Load replay at %s
 
 TX_HOUSES_MARKET_SELECT_LEFT = 364; //Use the left mouse button to select the ware to trade
 TX_HOUSES_MARKET_SELECT_RIGHT = 365; //Use the right mouse button to select the ware to trade
@@ -1207,8 +1210,14 @@ TX_HOUSE_LOGO_HINT = 1185; //Go to selected house
 TX_UNIT_SCROLL_HINT = 1186; //Go to selected unit
 
 TX_GAME_SETTINGS_COLOR_MODE = 1187; //Ally / enemy color mode
-TX_GAME_SETTINGS_COLOR_MODE_SHORT = 1235; //Ally / enemy
-TX_GAME_SETTINGS_COLOR_MODE_HINT = 1188; //Use self/ally/enemy colors for players instead of initial player colors
+TX_GAME_SETTINGS_COLOR_MODE_HINT = 1188; //Self/ally/enemy colors for players instead of initial player colors
+TX_PLAYERS_COLOR_MODE_CAPTION = 1248; //Players color mode:
+TX_PLAYERS_COLOR_MODE_DEFAULT = 1249; //Default
+TX_PLAYERS_COLOR_MODE_ALLY_ENEMY = 1250; //Ally / Enemy
+TX_PLAYERS_COLOR_MODE_TEAMS = 1251; //Teams
+TX_PLAYERS_COLOR_MODE_DEFAULT_HINT = 1252; //Show initial players colors
+TX_PLAYERS_COLOR_MODE_ALLY_ENEMY_HINT = 1253; //Show self / ally / enemy players colors
+TX_PLAYERS_COLOR_MODE_TEAMS_HINT = 1254; //Show teams colors
 
 TX_LOBBY_ALERT_NOT_READY = 1189; //Host is ready to start. Please press '%s'
 TX_LOBBY_ALERT_READY_BTN = 1190; //Ask to press Ready
@@ -1271,3 +1280,5 @@ TX_SCRIPT_CONSOLE_CMD_PARSING_ERROR = 1243; //Error while calling script command
 TX_SCRIPT_CONSOLE_CMD_NOT_FOUND = 1244; //Script console command /%s not found
 
 TX_CHAT_COPY_PASTE_SWITCH = 1245; //Enable/Disable chat history and copy-paste from chat window
+
+TX_FORM_EXPORT_CONFIRM_MSG = 1235; //Data export could take up to several minutes.\nExported data will be stored in %s folder.\nDo you confirm operation?
