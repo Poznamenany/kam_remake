@@ -33,8 +33,10 @@ type
     function GetDeliverStage: TKMDeliverStage;
     procedure SetToHouse(aToHouse: TKMHouse);
     procedure SetFromHouse(aFromHouse: TKMHouse);
+    procedure SetToUnit(aToUnit: TKMUnit);
     property FromHouse: TKMHouse read fFrom write SetFromHouse;
     property ToHouse: TKMHouse read fToHouse write SetToHouse;
+    property ToUnit: TKMUnit read fToUnit write SetToUnit;
   public
     constructor Create(aSerf: TKMUnitSerf; aFrom: TKMHouse; aToHouse: TKMHouse; Res: TKMWareType; aID: Integer); overload;
     constructor Create(aSerf: TKMUnitSerf; aFrom: TKMHouse; aToUnit: TKMUnit; Res: TKMWareType; aID: Integer); overload;
@@ -98,13 +100,11 @@ begin
   if gLog.CanLogDelivery then
     gLog.LogDelivery('Serf ' + IntToStr(fUnit.UID) + ' created delivery task ' + IntToStr(fDeliverID));
 
-  fFrom    := aFrom.GetHousePointer;
-  fToUnit  := aToUnit.GetUnitPointer;
+  FromHouse := aFrom.GetHousePointer;
+  ToUnit    := aToUnit.GetUnitPointer;
   fDeliverKind := dkToUnit;
   fWareType := Res;
   fDeliverID := aID;
-  fPointBelowToHouse := KMPOINT_INVALID_TILE;
-  fPointBelowFromHouse := KMPOINT_INVALID_TILE;
 end;
 
 
@@ -219,7 +219,7 @@ begin
   gHands.CleanUpUnitPointer(fToUnit);
   if NewToHouse <> nil then
   begin
-    fToHouse := NewToHouse.GetHousePointer;
+    ToHouse := NewToHouse.GetHousePointer; //Use Setter here to set up fPointBelowToHouse
     if fToHouse.IsComplete then
       fDeliverKind := dkToHouse
     else
@@ -227,7 +227,7 @@ begin
   end
   else
   begin
-    fToUnit := NewToUnit.GetUnitPointer;
+    ToUnit := NewToUnit.GetUnitPointer; //Use Setter here to clean up fPointBelowToHouse
     fDeliverKind := dkToUnit;
   end;
 end;
@@ -259,7 +259,7 @@ begin
   // New House
   if (NewToHouse <> nil) and (NewToUnit = nil) then
   begin
-    fToHouse := NewToHouse.GetHousePointer;
+    ToHouse := NewToHouse.GetHousePointer; //Use Setter here to set up fPointBelowToHouse
     if fToHouse.IsComplete then
       fDeliverKind := dkToHouse
     else
@@ -272,7 +272,7 @@ begin
   // New Unit
   if (NewToHouse = nil) and (NewToUnit <> nil) then
   begin
-    fToUnit := NewToUnit.GetUnitPointer;
+    ToUnit := NewToUnit.GetUnitPointer; //Use Setter here to clean up fPointBelowToHouse
     fDeliverKind := dkToUnit;
     Result := True;
     if fPhase > 4 then
@@ -308,6 +308,13 @@ procedure TKMTaskDeliver.SetFromHouse(aFromHouse: TKMHouse);
 begin
   fFrom := aFromHouse;
   fPointBelowFromHouse := aFromHouse.PointBelowEntrance; //save that point separately, in case fFrom will be destroyed
+end;
+
+
+procedure TKMTaskDeliver.SetToUnit(aToUnit: TKMUnit);
+begin
+  fToUnit := aToUnit;
+  fPointBelowToHouse := KMPOINT_INVALID_TILE; //clean fPointBelowToHouse since we are going to Unit now
 end;
 
 
