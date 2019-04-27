@@ -358,39 +358,44 @@ function TKMTaskDeliver.Execute: TKMTaskResult;
 
   function NeedGoToRoad: Boolean;
   var
-    RoadConnectId: Byte;
+    RC, RCFrom, RCTo: Byte;
   begin
     //Check if we already reach destination, no need to check anymore.
     //Also there is possibility when connected path (not diagonal) to house was cut and we have only diagonal path
-    //then its possible, that fPointBelowToHouse COnnect Area will have only 1 tile, that means its WalkConnect will be 0
-    if fUnit.CurrPosition = fPointBelowToHouse then
+    //then its possible, that fPointBelowToHouse Connect Area will have only 1 tile, that means its WalkConnect will be 0
+    //then no need actually need to go to raod
+    if fUnit.CurrPosition = fToHouse.PointBelowEntrance then
       Exit(False);
-    RoadConnectId := gTerrain.GetRoadConnectID(fUnit.CurrPosition);
-    Result := ((((fPhase - 1) = 5) and (fDeliverKind = dkToHouse))
-                or (((fPhase - 1) in [5,6]) and (fDeliverKind = dkToConstruction)))
-              and ((RoadConnectId = 0)
-                or ((RoadConnectId <> gTerrain.GetRoadConnectID(fPointBelowToHouse))
-                  and (RoadConnectId <> gTerrain.GetRoadConnectID(fPointBelowFromHouse))));
+
+    RC := gTerrain.GetRoadConnectID(fUnit.CurrPosition);
+    RCFrom := gTerrain.GetRoadConnectID(fPointBelowFromHouse);
+    RCTo := gTerrain.GetRoadConnectID(fPointBelowToHouse);
+
+    Result := (RC = 0) or not (RC in [RCFrom, RCTo]);
   end;
 
 var
   Worker: TKMUnit;
-  NeedWalkToRoad: Boolean;
+  NeedWalkBackToRoad: Boolean;
 begin
   Result := trTaskContinues;
 
-  NeedWalkToRoad := NeedGoToRoad();
+  //Check if need walk back to road
+  //Used only if we walk from house to other house or construction site
+  NeedWalkBackToRoad := (((fDeliverKind = dkToHouse) and ((fPhase - 1) = 5))
+                          or (((fPhase - 1) in [5,6]) and (fDeliverKind = dkToConstruction)))
+                        and NeedGoToRoad();
 
-  if not NeedWalkToRoad then
+  if not NeedWalkBackToRoad then
     fPhase2 := 0;
 
-  if WalkShouldAbandon and fUnit.Visible and not (NeedWalkToRoad or FindBestDestination) then
+  if WalkShouldAbandon and fUnit.Visible and not (NeedWalkBackToRoad or FindBestDestination) then
   begin
     Result := trTaskDone;
     Exit;
   end;
 
-  if NeedWalkToRoad then
+  if NeedWalkBackToRoad then
   begin
     case fPhase2 of
       0:  begin
