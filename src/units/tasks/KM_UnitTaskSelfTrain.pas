@@ -56,7 +56,7 @@ begin
   if (gGame = nil) or gGame.IsExiting then Exit; //fSchool will already be freed
 
   // If we abandon for some reason, clear the school animation
-  if (fPhase <= 5) and not fSchool.IsDestroyed then
+  if (fSchool <> nil) and (fPhase <= 5) and not fSchool.IsDestroyed then
     fSchool.SetState(hstIdle);
 
   gHands.CleanUpHousePointer(TKMHouse(fSchool));

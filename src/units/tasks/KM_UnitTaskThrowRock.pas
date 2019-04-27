@@ -38,8 +38,11 @@ end;
 
 destructor TKMTaskThrowRock.Destroy;
 begin
-  if not fUnit.Home.IsDestroyed and (fUnit.Home.GetState = hstWork) then
+  if (fUnit <> nil)
+    and not fUnit.Home.IsDestroyed
+    and (fUnit.Home.GetState = hstWork) then
     fUnit.Home.SetState(hstIdle); //Make sure we don't abandon and leave our tower with "working" animations
+
   gHands.CleanUpUnitPointer(fTarget);
   inherited;
 end;

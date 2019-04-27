@@ -59,8 +59,9 @@ end;
 destructor TKMTaskMining.Destroy;
 begin
   // Make sure we don't abandon and leave our house with "working" animations
-  if (not fUnit.Home.IsDestroyed)
-  and (fUnit.Home.GetState = hstWork) then
+  if (fUnit <> nil)
+    and not fUnit.Home.IsDestroyed
+    and (fUnit.Home.GetState = hstWork) then
     fUnit.Home.SetState(hstIdle);
 
   FreeAndNil(fWorkPlan);

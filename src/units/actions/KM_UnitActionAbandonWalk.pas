@@ -42,7 +42,7 @@ end;
 
 destructor TKMUnitActionAbandonWalk.Destroy;
 begin
-  if not KMSamePoint(fVertexOccupied, KMPOINT_ZERO) then
+  if (fUnit <> nil) and not KMSamePoint(fVertexOccupied, KMPOINT_ZERO) then
   begin
     fUnit.VertexRem(fVertexOccupied); //Unoccupy vertex
     fVertexOccupied := KMPOINT_ZERO;

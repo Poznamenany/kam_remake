@@ -10,7 +10,6 @@ type
   TKMTaskGoHome = class(TKMUnitTask)
   public
     constructor Create(aUnit: TKMUnit);
-    destructor Destroy; override;
 
     function Execute: TKMTaskResult; override;
     function CouldBeCancelled: Boolean; override;
@@ -26,12 +25,6 @@ begin
   inherited;
 
   fType := uttGoHome;
-end;
-
-
-destructor TKMTaskGoHome.Destroy;
-begin
-  inherited;
 end;
 
 

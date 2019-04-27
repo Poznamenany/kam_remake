@@ -194,25 +194,6 @@ end;
 
 //MapEditor stores only commanders instead of all groups members
 procedure TKMMinimap.UpdateMinimapFromGame;
-
-  function GetColor(aHandId: TKMHandID): Cardinal;
-  begin
-    if (gGame <> nil) then
-    begin
-      if (gGame.IsMapEditor or gGameApp.GameSettings.ShowPlayersColors) then
-        Result := gHands[aHandId].FlagColor
-      else begin
-        if aHandId = gMySpectator.HandID then
-          Result := gGameApp.GameSettings.PlayerColorSelf
-        else if (gHands[aHandId].Alliances[gMySpectator.HandID] = atAlly) then
-          Result := gGameApp.GameSettings.PlayerColorAlly
-        else
-          Result := gGameApp.GameSettings.PlayerColorEnemy;
-      end;
-    end else
-      Result := gHands[aHandId].FlagColor;
-  end;
-
 var
   FOW: Byte;
   ID: Word;
@@ -260,13 +241,13 @@ begin
         if (TileOwner <> -1)
           and not fMyTerrain.TileIsCornField(KMPoint(K+1, I+1)) //Do not show corn and wine on minimap
           and not fMyTerrain.TileIsWineField(KMPoint(K+1, I+1)) then
-          fBase[I*fMapX + K] := GetColor(TileOwner)
+          fBase[I*fMapX + K] := gHands[TileOwner].GameFlagColor
         else
         begin
           U := fMyTerrain.Land[I+1,K+1].IsUnit;
           if U <> nil then
             if U.Owner <> PLAYER_ANIMAL then
-              fBase[I*fMapX + K] := GetColor(U.Owner)
+              fBase[I*fMapX + K] := gHands[U.Owner].GameFlagColor
             else
               fBase[I*fMapX + K] := gRes.Units[U.UnitType].MinimapColor
           else

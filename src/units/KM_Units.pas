@@ -225,8 +225,8 @@ type
     function GetSlide(aCheck: TKMCheckAxis): Single;
     function PathfindingShouldAvoid: Boolean; virtual;
 
-    function ObjToString: String; virtual;
-    function ObjToStringShort(aSeparator: String = '|'): String;
+    function ObjToString(aSeparator: String = '|'): String; virtual;
+    function ObjToStringShort(aSeparator: String = '|'): String; virtual;
 
     procedure Save(SaveStream: TKMemoryStream); virtual;
     function UpdateState: Boolean; virtual;
@@ -293,7 +293,7 @@ type
     procedure CarryGive(Res: TKMWareType);
     procedure CarryTake;
 
-    function ObjToString: String; override;
+    function ObjToString(aSeparator: String = '|'): String; override;
 
     function UpdateState: Boolean; override;
     procedure Paint; override;
@@ -855,9 +855,10 @@ begin
 end;
 
 
-function TKMUnitSerf.ObjToString: String;
+function TKMUnitSerf.ObjToString(aSeparator: String = '|'): String;
 begin
-  Result := inherited + Format('|Carry = %s', [GetEnumName(TypeInfo(TKMWareType), Integer(fCarry))]);
+  Result := inherited ObjToString(aSeparator)
+          + Format('%sCarry = %s', [aSeparator, GetEnumName(TypeInfo(TKMWareType), Integer(fCarry))]);
 end;
 
 
@@ -1755,7 +1756,8 @@ begin
   if (Action is TKMUnitActionWalkTo) and not TKMUnitActionWalkTo(Action).CanAbandonExternal then
     raise Exception.Create('Interrupting unabandonable Walk action');
 
-  SetAction(TKMUnitActionWalkTo.Create(Self, KMPOINT_INVALID_TILE, aActionType, aDistance, False, nil, nil, aTargetPassability, aTargetWalkConnectSet));
+  SetAction(TKMUnitActionWalkTo.Create(Self, KMPOINT_INVALID_TILE, aActionType, aDistance, False, nil, nil,
+                                       aTargetPassability, aTargetWalkConnectSet));
 end;
 
 
@@ -2164,7 +2166,7 @@ begin
 end;
 
 
-function TKMUnit.ObjToString: String;
+function TKMUnit.ObjToString(aSeparator: String = '|'): String;
 var
   HomeStr: String;
 begin
@@ -2173,20 +2175,21 @@ begin
   if fHome <> nil then
     HomeStr := Format('[UID = %d, Type = %s]', [fHome.UID, GetEnumName(TypeInfo(TKMHouseType), Integer(fHome.HouseType))]);
 
-  Result := ObjToStringShort +
-            Format('|PositionF = %s|PrevPosition = %s|NextPosition = %s|' +
-                   'Thought = %s|HitPoints = %d|HitPointCounter = %d|Condition = %d|' +
-                   'Owner = %d|Home = %s|Visible = %s|IsDead = %s',
-                   [TypeToString(fPositionF),
-                    TypeToString(fPrevPosition),
-                    TypeToString(fNextPosition),
-                    GetEnumName(TypeInfo(TKMUnitThought), Integer(fThought)),
-                    fHitPoints,
-                    fHitPointCounter,
-                    fCondition,
-                    fOwner,
-                    HomeStr,
-                    BoolToStr(fVisible, True),
+  Result := ObjToStringShort(aSeparator) +
+            Format('%sPositionF = %s%sPrevPosition = %s%sNextPosition = %s%s' +
+                   'Thought = %s%sHitPoints = %d%sHitPointCounter = %d%sCondition = %d%s' +
+                   'Owner = %d%sHome = %s%sVisible = %s%sIsDead = %s',
+                   [aSeparator,
+                    TypeToString(fPositionF), aSeparator,
+                    TypeToString(fPrevPosition), aSeparator,
+                    TypeToString(fNextPosition), aSeparator,
+                    GetEnumName(TypeInfo(TKMUnitThought), Integer(fThought)), aSeparator,
+                    fHitPoints, aSeparator,
+                    fHitPointCounter, aSeparator,
+                    fCondition, aSeparator,
+                    fOwner, aSeparator,
+                    HomeStr, aSeparator,
+                    BoolToStr(fVisible, True), aSeparator,
                     BoolToStr(fIsDead, True)]);
 end;
 

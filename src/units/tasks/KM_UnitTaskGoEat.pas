@@ -61,7 +61,7 @@ end;
 destructor TKMTaskGoEat.Destroy;
 begin
   //May happen when we die while desperatley trying to get some food
-  if Eating then
+  if (fInn <> nil) and Eating then
     fInn.EatersGoesOut(fPlace);
 
   gHands.CleanUpHousePointer(TKMHouse(fInn));

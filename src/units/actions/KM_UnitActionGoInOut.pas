@@ -106,10 +106,11 @@ begin
   //A bug can occur because this action is destroyed early when a unit is told to die.
   //If we are still invisible then TTaskDie assumes we are inside and creates a new
   //GoOut action. Therefore if we are invisible we do not occupy a tile.
-  if (fDirection = gdGoOutside)
-  and fHasStarted
-  and not fUnit.Visible
-  and (gTerrain.Land[fUnit.NextPosition.Y,fUnit.NextPosition.X].IsUnit = fUnit) then
+  if (fUnit <> nil) 
+    and (fDirection = gdGoOutside)
+    and fHasStarted
+    and not fUnit.Visible
+    and (gTerrain.Land[fUnit.NextPosition.Y,fUnit.NextPosition.X].IsUnit = fUnit) then
   begin
     gTerrain.UnitRem(fUnit.NextPosition);
     if not KMSamePoint(fDoor, KMPOINT_ZERO) then

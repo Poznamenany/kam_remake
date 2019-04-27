@@ -129,6 +129,7 @@ begin
             if gMySpectator.Selected = fUnit then
               gMySpectator.Selected := nil; //Reset view, in case we were watching dismissed unit
 
+            gHands[fUnit.Owner].Stats.UnitLost(fUnit.UnitType);
             TKMCivilUnit(fUnit).KillInHouse; //Kill unit silently inside house
             Exit; //Exit immidiately, since we destroyed current task!
                   //Changing any task fields here (f.e. Phase) will try to change freed memory!

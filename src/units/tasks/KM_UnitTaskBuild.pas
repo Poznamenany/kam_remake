@@ -161,27 +161,30 @@ end;
 
 destructor TKMTaskBuildRoad.Destroy;
 begin
-  if DemandSet then
+  if (fUnit <> nil) and DemandSet then
     gHands[fUnit.Owner].Deliveries.Queue.RemDemand(fUnit);
 
   if TileLockSet then
     gTerrain.UnlockTile(fLoc);
 
   //Yet unstarted
-  if BuildID <> -1 then
+  if (fUnit <> nil) then
   begin
-    if gTerrain.CanAddField(fLoc.X, fLoc.Y, ftRoad) then
-      //Allow other workers to take this task
-      gHands[fUnit.Owner].BuildList.FieldworksList.ReOpenField(BuildID)
+    if BuildID <> -1 then
+    begin
+      if gTerrain.CanAddField(fLoc.X, fLoc.Y, ftRoad) then
+        //Allow other workers to take this task
+        gHands[fUnit.Owner].BuildList.FieldworksList.ReOpenField(BuildID)
+      else
+        //This plan is not valid anymore
+        gHands[fUnit.Owner].BuildList.FieldworksList.CloseField(BuildID);
+    end
     else
-      //This plan is not valid anymore
-      gHands[fUnit.Owner].BuildList.FieldworksList.CloseField(BuildID);
-  end
-  else
-    //Autobuild AI should rebuild roads when worker dies (otherwise house is never built)
-    if (gGame <> nil) and not gGame.IsExiting and gHands[fUnit.Owner].AI.Setup.AutoBuild and (fPhase < 9)
-    and gHands[fUnit.Owner].CanAddFieldPlan(fLoc, ftRoad) then
-      gHands[fUnit.Owner].BuildList.FieldworksList.AddField(fLoc, ftRoad);
+      //Autobuild AI should rebuild roads when worker dies (otherwise house is never built)
+      if (gGame <> nil) and not gGame.IsExiting and gHands[fUnit.Owner].AI.Setup.AutoBuild and (fPhase < 9)
+      and gHands[fUnit.Owner].CanAddFieldPlan(fLoc, ftRoad) then
+        gHands[fUnit.Owner].BuildList.FieldworksList.AddField(fLoc, ftRoad);
+  end;
 
   inherited;
 end;
