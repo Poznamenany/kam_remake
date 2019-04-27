@@ -2,38 +2,45 @@ unit KM_GameSavedReplays;
 {$I KaM_Remake.inc}
 interface
 uses
+  Generics.Collections,
   KM_CommonClasses;
 
 type
   TKMSavedReplay = class
   private
     fStream: TKMemoryStream;
-    fName: String; // Name of the save on the pop up menu
-    // Tick / Description
+    fTick: Cardinal;
+    // Opened spectator menu, viewports position etc...
   public
-    constructor Create(aStream: TKMemoryStream; aName: String);
+    constructor Create(aStream: TKMemoryStream; aTick: Cardinal);
     destructor Destroy(); override;
 
     property Stream: TKMemoryStream read fStream;
-    property Name: String read fName;
+    property Tick: Cardinal read fTick;
   end;
 
   TKMSavedReplays = class
   private
-    fReplaySaves: TKMList;
+    fReplaySaves: TDictionary<Cardinal, TKMSavedReplay>;
+    //Properties to restore after load saved replay
+    fLastTick: Cardinal;
 
     function GetCount(): Integer;
-    function GetSave(aIdx: Integer): TKMSavedReplay;
-    function GetStream(aIdx: Integer): TKMemoryStream;
+    function GetSave(aTick: Cardinal): TKMSavedReplay;
+    function GetStream(aTick: Cardinal): TKMemoryStream;
   public
     constructor Create();
     destructor Destroy; override;
 
-    property Count: Integer read GetCount;
-    property Replay[aIdx: Integer]: TKMSavedReplay read GetSave;
-    property Stream[aIdx: Integer]: TKMemoryStream read GetStream; default;
+    property LastTick: Cardinal read fLastTick write fLastTick;
 
-    procedure NewSave(aStream: TKMemoryStream; aName: String);
+    property Count: Integer read GetCount;
+    property Replay[aTick: Cardinal]: TKMSavedReplay read GetSave;
+    property Stream[aTick: Cardinal]: TKMemoryStream read GetStream; default;
+    function Contains(aTick: Cardinal): Boolean;
+    procedure FillTicks(aTicksList: TList<Cardinal>);
+
+    procedure NewSave(aStream: TKMemoryStream; aTick: Cardinal);
   end;
 
 implementation
@@ -44,7 +51,8 @@ uses
 { TKMSavedReplays }
 constructor TKMSavedReplays.Create();
 begin
-  fReplaySaves := TKMList.Create();
+  fReplaySaves := TDictionary<Cardinal, TKMSavedReplay>.Create();
+  fLastTick := 0;
 end;
 
 
@@ -61,37 +69,51 @@ begin
 end;
 
 
-function TKMSavedReplays.GetSave(aIdx: Integer): TKMSavedReplay;
+function TKMSavedReplays.Contains(aTick: Cardinal): Boolean;
 begin
-  Result := nil;
-  if (fReplaySaves.Count > aIdx) AND (aIdx >= 0) then
-    Result := TKMSavedReplay( fReplaySaves[aIdx] );
+  Result := fReplaySaves.ContainsKey(aTick);
 end;
 
 
-function TKMSavedReplays.GetStream(aIdx: Integer): TKMemoryStream;
+procedure TKMSavedReplays.FillTicks(aTicksList: TList<Cardinal>);
+var
+  Tick: Cardinal;
+begin
+  for Tick in fReplaySaves.Keys do
+    aTicksList.Add(Tick);
+end;
+
+
+function TKMSavedReplays.GetSave(aTick: Cardinal): TKMSavedReplay;
+begin
+  Result := nil;
+  if fReplaySaves.ContainsKey(aTick) then
+    Result := fReplaySaves[aTick];
+end;
+
+
+function TKMSavedReplays.GetStream(aTick: Cardinal): TKMemoryStream;
 var
   Rpl: TKMSavedReplay;
 begin
   Result := nil;
-  Rpl := Replay[aIdx];
-  if (Rpl <> nil) then
+  if fReplaySaves.TryGetValue(aTick, Rpl) then
     Result := Rpl.Stream;
 end;
 
 
-procedure TKMSavedReplays.NewSave(aStream: TKMemoryStream; aName: String);
+procedure TKMSavedReplays.NewSave(aStream: TKMemoryStream; aTick: Cardinal);
 begin
-  fReplaySaves.Add( TKMSavedReplay.Create(aStream, aName) );
+  fReplaySaves.Add(aTick, TKMSavedReplay.Create(aStream, aTick) );
 end;
 
 
 
 { TKMSavedReplay }
-constructor TKMSavedReplay.Create(aStream: TKMemoryStream; aName: String);
+constructor TKMSavedReplay.Create(aStream: TKMemoryStream; aTick: Cardinal);
 begin
   fStream := aStream;
-  fName := aName;
+  fTick := aTick;
 end;
 
 

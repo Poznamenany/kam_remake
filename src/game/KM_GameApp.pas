@@ -40,7 +40,7 @@ type
     procedure LoadGameFromScript(const aMissionFile, aGameName: String; aCRC: Cardinal; aCampaign: TKMCampaign;
                                  aMap: Byte; aGameMode: TKMGameMode; aDesiredLoc: ShortInt; aDesiredColor: Cardinal;
                                  aDifficulty: TKMMissionDifficulty = mdNone; aAIType: TKMAIType = aitNone);
-    procedure LoadGameFromMemory(aIdx: Integer);
+    procedure LoadGameFromMemory(aTick: Cardinal);
     procedure LoadGameFromScratch(aSizeX, aSizeY: Integer; aGameMode: TKMGameMode);
     function SaveName(const aName, aExt: UnicodeString; aIsMultiplayer: Boolean): UnicodeString;
 
@@ -85,7 +85,7 @@ type
     procedure NewEmptyMap(aSizeX, aSizeY: Integer);
     procedure NewMapEditor(const aFileName: UnicodeString; aSizeX: Integer = 0; aSizeY: Integer = 0; aMapCRC: Cardinal = 0);
     procedure NewReplay(const aFilePath: UnicodeString);
-    procedure LoadSavedReplay(aIdx: Integer);
+    function TryLoadSavedReplay(aTick: Integer): Boolean;
 
     procedure SaveMapEditor(const aPathName: UnicodeString);
 
@@ -594,7 +594,7 @@ begin
 
   gGame := TKMGame.Create(aGameMode, fRender, fNetworking, GameDestroyed);
   try
-    gGame.Load(FilePath);
+    gGame.LoadFromFile(FilePath);
   except
     on E: Exception do
     begin
@@ -667,7 +667,7 @@ begin
 end;
 
 
-procedure TKMGameApp.LoadGameFromMemory(aIdx: Integer);
+procedure TKMGameApp.LoadGameFromMemory(aTick: Cardinal);
 var
   LoadError: string;
   SavedReplays: TKMSavedReplays;
@@ -692,7 +692,7 @@ begin
   gGame := TKMGame.Create(GameMode, fRender, fNetworking, GameDestroyed);
   try
     gGame.SavedReplays := SavedReplays;
-    gGame.LoadSavedReplay(aIdx, SaveFile);
+    gGame.LoadSavedReplay(aTick, SaveFile);
   except
     on E: Exception do
     begin
@@ -843,6 +843,7 @@ begin
 end;
 
 
+//Used by Runner util
 procedure TKMGameApp.NewEmptyMap(aSizeX, aSizeY: Integer);
 begin
   LoadGameFromScratch(aSizeX, aSizeY, gmSingle);
@@ -885,11 +886,13 @@ begin
 end;
 
 
-procedure TKMGameApp.LoadSavedReplay(aIdx: Integer);
+function TKMGameApp.TryLoadSavedReplay(aTick: Integer): Boolean;
 begin
-  if (gGame <> nil) AND (gGame.SavedReplays <> nil) AND (gGame.SavedReplays.Count > aIdx) then
+  Result := False;
+  if (gGame <> nil) AND (gGame.SavedReplays <> nil) AND gGame.SavedReplays.Contains(aTick) then
   begin
-    LoadGameFromMemory(aIdx);
+    LoadGameFromMemory(aTick);
+    Result := True;
 
     if Assigned(fOnGameStart) and (gGame <> nil) then
       fOnGameStart(gGame.GameMode);
@@ -1073,7 +1076,8 @@ begin
         fOnCursorUpdate(SB_ID_TIME, 'Time: ' + TimeToString(gGame.MissionTime));
   end;
 
-  if gMain.Settings.IsNoRenerMaxTimeSet
+  if (gMain <> nil) //Could be nil for Runner Util
+    and gMain.Settings.IsNoRenerMaxTimeSet
     and (GetTimeSince(fLastTimeRender) > gMain.Settings.NoRenderMaxTime) then
     Render;
 end;

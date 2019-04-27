@@ -206,7 +206,7 @@ begin
 
   //Find first unsent pack
   Tick := MAX_SCHEDULE; //Out of range value
-  for I := gGame.GameTickCount + fDelay to gGame.GameTickCount + MAX_SCHEDULE - 1 do
+  for I := gGame.GameTick + fDelay to gGame.GameTick + MAX_SCHEDULE - 1 do
     if not fSent[I mod MAX_SCHEDULE] then
     begin
       Tick := I mod MAX_SCHEDULE; //Place in a ring buffer
@@ -302,7 +302,7 @@ begin
                                                         aPlayerIndex,
                                                         fNetworking.NetPlayers[aPlayerIndex].Nikname,
                                                         fNetworking.NetPlayers[aPlayerIndex].HandIndex,
-                                                        gGame.GameTickCount]));
+                                                        gGame.GameTick]));
     PlayerCheckPending[aPlayerIndex] := False;
   end;
 end;
@@ -322,7 +322,7 @@ begin
     kdpCommands:
         begin
           //Recieving commands too late will happen during reconnections, so just ignore it
-          if Tick > gGame.GameTickCount then
+          if Tick > gGame.GameTick then
           begin
             fSchedule[Tick mod MAX_SCHEDULE, aSenderIndex].Load(aStream);
             fRecievedData[Tick mod MAX_SCHEDULE, aSenderIndex] := True;
@@ -334,7 +334,7 @@ begin
           fRandomCheck[Tick mod MAX_SCHEDULE].PlayerCheck[aSenderIndex] := CRC; //Store it for this player
           fRandomCheck[Tick mod MAX_SCHEDULE].PlayerCheckPending[aSenderIndex] := True;
           //If we have processed this tick already, check now
-          if Tick <= gGame.GameTickCount then
+          if Tick <= gGame.GameTick then
             DoRandomCheck(Tick, aSenderIndex);
         end;
   end;

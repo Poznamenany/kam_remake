@@ -114,13 +114,12 @@ var
       ID := TempGraphCount;
       Inc(TempGraphCount);
       TempGraphs[ID].G := aGraph; //Overwrite existing graph
+      TempGraphs[ID].Color := aColor;
+      TempGraphs[ID].OwnerName := aOwnerName;
     end
     else
       for I := 0 to Length(aGraph) - 1 do
         Inc(TempGraphs[ID].G[I], aGraph[I]); //Add each element to the existing elements
-
-    TempGraphs[ID].Color := aColor;
-    TempGraphs[ID].OwnerName := aOwnerName;
   end;
 
 var
@@ -213,10 +212,10 @@ begin
   Chart_Houses.MaxLength    := gHands[HumanId].Stats.ChartCount;
   Chart_Wares.MaxLength     := gHands[HumanId].Stats.ChartCount;
 
-  Chart_Army.MaxTime      := gGame.GameTickCount div 10;
-  Chart_Citizens.MaxTime  := gGame.GameTickCount div 10;
-  Chart_Houses.MaxTime    := gGame.GameTickCount div 10;
-  Chart_Wares.MaxTime     := gGame.GameTickCount div 10;
+  Chart_Army.MaxTime      := gGame.GameTick div 10;
+  Chart_Citizens.MaxTime  := gGame.GameTick div 10;
+  Chart_Houses.MaxTime    := gGame.GameTick div 10;
+  Chart_Wares.MaxTime     := gGame.GameTick div 10;
 
   //Citizens
   TempGraphCount := 0; //Reset

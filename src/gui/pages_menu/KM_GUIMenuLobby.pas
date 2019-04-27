@@ -5,7 +5,7 @@ uses
   {$IFDEF MSWindows} Windows, {$ENDIF}
   {$IFDEF Unix} LCLType, {$ENDIF}
   Classes, Controls, Math, SysUtils,
-  KM_Defaults, KM_NetworkTypes, KM_Console,
+  KM_Defaults, KM_NetworkTypes, KM_Console, KM_ResTexts,
   KM_Controls, KM_Maps, KM_Saves, KM_Pics, KM_InterfaceDefaults, KM_Minimap, KM_Networking;
 
 
@@ -123,9 +123,9 @@ type
     procedure EscKeyDown(Sender: TObject);
     procedure KeyDown(Key: Word; Shift: TShiftState);
 
-    procedure ChatMessageChanged(Sender: TObject);
     procedure ChatTextChanged(Sender: TObject);
-    procedure UpdateChat;
+    procedure SetChatHandlers;
+    procedure UpdateChatControls;
   protected
     Panel_Lobby: TKMPanel;
       Panel_Settings: TKMPanel;
@@ -202,10 +202,14 @@ type
     procedure UpdateState;
   end;
 
+var
+  LOBBY_PLAYER_NAMES_TEXT_ID_RESERVED: array[0..3] of Word =
+    (TX_LOBBY_SLOT_CLOSED, TX_LOBBY_SLOT_OPEN, TX_AI_PLAYER_CLASSIC, TX_AI_PLAYER_ADVANCED);
+
 
 implementation
 uses
-  KM_CommonTypes, KM_ResTexts, KM_ResLocales, KM_CommonUtils, KM_Sound, KM_ResSound, KM_RenderUI,
+  KM_CommonTypes, KM_ResLocales, KM_CommonUtils, KM_Sound, KM_ResSound, KM_RenderUI,
   KM_Resource, KM_ResFonts, KM_NetPlayersList, KM_Main, KM_GameApp, KM_Points, KM_MapTypes;
 
 const
@@ -515,7 +519,6 @@ begin
     //Chat area
     Memo_Posts := TKMMemo.Create(Panel_Lobby, 30, 406, CW, 282, fntArial, bsMenu);
     Memo_Posts.Anchors := [anLeft, anTop, anBottom];
-    Memo_Posts.OnChange := ChatMessageChanged;
     Memo_Posts.AutoWrap := True;
     Memo_Posts.IndentAfterNL := True; //Don't let players fake system messages
     Memo_Posts.ScrollDown := True;
@@ -827,24 +830,14 @@ begin
 end;
 
 
-procedure TKMMenuLobby.ChatMessageChanged(Sender: TObject);
-begin
-  gGameApp.Chat.Messages := Memo_Posts.Text;
-end;
-
-
 procedure TKMMenuLobby.ChatTextChanged(Sender: TObject);
 begin
   gGameApp.Chat.Text := Edit_Post.Text;
 end;
 
 
-procedure TKMMenuLobby.UpdateChat;
+procedure TKMMenuLobby.UpdateChatControls;
 begin
-  gGameApp.Chat.OnError := HandleError;
-  gGameApp.Chat.OnPost := PostMsg;
-  gGameApp.Chat.OnPostLocal := PostLocalMsg;
-
   if gGameApp.Chat.Mode = cmWhisper then
     ChatMenuSelect(gGameApp.Chat.WhisperRecipient)
   else
@@ -853,6 +846,17 @@ begin
   Edit_Post.Text := gGameApp.Chat.Text;
   Memo_Posts.Text := gGameApp.Chat.Messages;
   Memo_Posts.ScrollToBottom;
+end;
+
+
+procedure TKMMenuLobby.SetChatHandlers;
+begin
+  gGameApp.Chat.OnError := HandleError;
+  gGameApp.Chat.OnPost := PostMsg;
+  gGameApp.Chat.OnPostLocal := PostLocalMsg;
+  gGameApp.Chat.OnChange := UpdateChatControls;
+
+  UpdateChatControls
 end;
 
 
@@ -885,7 +889,7 @@ begin
   UpdateMapList;
 
   //Update chat
-  UpdateChat;
+  SetChatHandlers;
 
   for I := 1 to MAX_LOBBY_SLOTS do
   begin
@@ -1114,7 +1118,7 @@ end;
 procedure TKMMenuLobby.ReadmeClick(Sender: TObject);
 begin
   if not fNetworking.MapInfo.ViewReadme then
-    Memo_Posts.Add(gResTexts[TX_LOBBY_PDF_ERROR]);
+    gGameApp.Chat.AddLine(gResTexts[TX_LOBBY_PDF_ERROR]);
 end;
 
 
@@ -1298,7 +1302,7 @@ begin
                    - fNetworking.NetPlayers.GetAICount(aAIPlayerTypes));
   end else if (fNetworking.SaveInfo <> nil) and fNetworking.SaveInfo.IsValid then
   begin
-    Result := Max(0, fNetworking.SaveInfo.Info.HumanCount
+    Result := Max(0, fNetworking.SaveInfo.GameInfo.HumanCount
                    - fNetworking.NetPlayers.GetConnectedPlayersCount
                    - fNetworking.NetPlayers.GetAICount(aAIPlayerTypes));
   end;
@@ -1655,10 +1659,10 @@ begin
                     IsValid := fNetworking.SaveInfo.IsValid;
                     AddLocation(gResTexts[TX_LOBBY_SELECT], I, LOC_RANDOM);
 
-                    for K := 0 to fNetworking.SaveInfo.Info.PlayerCount - 1 do
-                      if fNetworking.SaveInfo.Info.Enabled[K]
-                      and (fNetworking.SaveInfo.Info.CanBeHuman[K] or ALLOW_TAKE_AI_PLAYERS) then
-                        AddLocation(UnicodeString(fNetworking.SaveInfo.Info.OwnerNikname[K]), I, K+1);
+                    for K := 0 to fNetworking.SaveInfo.GameInfo.PlayerCount - 1 do
+                      if fNetworking.SaveInfo.GameInfo.Enabled[K]
+                      and (fNetworking.SaveInfo.GameInfo.CanBeHuman[K] or ALLOW_TAKE_AI_PLAYERS) then
+                        AddLocation(UnicodeString(fNetworking.SaveInfo.GameInfo.OwnerNikname[K]), I, K+1);
                   end;
         ngkMap:  begin
                     IsValid := fNetworking.MapInfo.IsValid;
@@ -1697,7 +1701,7 @@ begin
       for K := 0 to DropBox_Colors[I].List.RowCount-1 do
         if (K <> CurPlayer.FlagColorID) and (K <> 0)
         and (not fNetworking.NetPlayers.ColorAvailable(K)
-             or ((fNetworking.SelectGameKind = ngkSave) and fNetworking.SaveInfo.Info.ColorUsed(K))) then
+             or ((fNetworking.SelectGameKind = ngkSave) and fNetworking.SaveInfo.GameInfo.ColorUsed(K))) then
           DropBox_Colors[I].List.Rows[K].Cells[0].Enabled := False
         else
           DropBox_Colors[I].List.Rows[K].Cells[0].Enabled := True;
@@ -2039,9 +2043,9 @@ begin
     for I := 0 to fSavesMP.Count - 1 do
     if fSavesMP[I].IsValid then
       DropCol_Maps.Add(MakeListRow([fSavesMP[I].FileName,
-                                         IntToStr(fSavesMP[I].Info.PlayerCount),
-                                         fSavesMP[I].Info.GetTimeText,
-                                         fSavesMP[I].Info.GetSaveTimestamp], I))
+                                         IntToStr(fSavesMP[I].GameInfo.PlayerCount),
+                                         fSavesMP[I].GameInfo.GetTimeText,
+                                         fSavesMP[I].GameInfo.GetSaveTimestamp], I))
     else
       DropCol_Maps.Add(MakeListRow([fSavesMP[I].FileName, '', '', ''], I));
 
@@ -2223,7 +2227,7 @@ begin
   //Difficulty levels
   DropBox_Difficulty.Clear;
   DropBox_Difficulty.Disable;
-  MD := aSave.Info.MissionDifficulty;
+  MD := aSave.GameInfo.MissionDifficulty;
   if MD = mdNone then
     Panel_Difficulty.Hide
   else
@@ -2329,7 +2333,7 @@ begin
     ngkSave: begin
                 S := fNetworking.SaveInfo;
                 Label_MapName.Caption := aData; //Show save name on host (local is always "downloaded")
-                Memo_MapDesc.Text := S.Info.GetTitleWithTime + '|' + S.Info.GetSaveTimestamp;
+                Memo_MapDesc.Text := S.GameInfo.GetTitleWithTime + '|' + S.GameInfo.GetSaveTimestamp;
                 Lobby_OnUpdateMinimap(nil);
                 UpdateDifficultyLevels(S);
               end;
@@ -2522,7 +2526,7 @@ begin
     if gGameApp.GameSettings.FlashOnMessage then
       gMain.FlashingStart;
 
-    Memo_Posts.Add(aText);
+    gGameApp.Chat.AddLine(aText);
   end;
 end;
 

@@ -10,6 +10,7 @@ uses
 
 type
   TUIMode = (umSP, umMP, umReplay, umSpectate);
+  TUIModeSet = set of TUIMode;
 
   TKMMenuPageType =  (gpMainMenu,
                         gpSinglePlayer,

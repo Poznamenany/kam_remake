@@ -263,9 +263,9 @@ begin
   try
     for I := 0 to fSaves.Count - 1 do
     begin
-      Row := MakeListRow(['', fSaves[i].FileName, fSaves[i].Info.GetSaveTimestamp, fSaves[I].Info.GetTitleWithTime],
+      Row := MakeListRow(['', fSaves[i].FileName, fSaves[i].GameInfo.GetSaveTimestamp, fSaves[I].GameInfo.GetTitleWithTime],
                          [$FFFFFFFF, $FFFFFFFF, $FFFFFFFF, $FFFFFFFF]);
-      Row.Cells[0].Pic := MakePic(rxGui, 657 + Byte(fSaves[I].Info.MissionMode = mmTactic));
+      Row.Cells[0].Pic := MakePic(rxGui, 657 + Byte(fSaves[I].GameInfo.MissionMode = mmTactic));
       ColumnBox_Load.AddItem(Row);
     end;
 

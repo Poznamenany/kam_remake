@@ -170,14 +170,14 @@ end;
 
 function TKMGameInfo.GetTimeText: UnicodeString;
 begin
-  Result := TimeToString(TickCount/24/60/60/10);
+  Result := TickToTimeStr(TickCount);
 end;
 
 
 function TKMGameInfo.GetTitleWithTime: UnicodeString;
 begin
   if IsValid(True) then
-    Result := Title + ' ' + TimeToString(TickCount/24/60/60/10)
+    Result := Title + ' ' + TickToTimeStr(TickCount)
   else
     Result := Title;
 end;

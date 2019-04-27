@@ -103,7 +103,7 @@ end;
 procedure TKMGameMenuSettings.UpdateView;
 begin
   CheckBox_ReplayAutopauseAtPTEnd.Enabled := (gGame.GameMode = gmReplayMulti) and gGame.IsPeaceTime;
-  CheckBox_AllyEnemy_ColorMode.Checked := not gGameApp.GameSettings.ShowPlayersColors;
+  CheckBox_AllyEnemy_ColorMode.Checked := gGameApp.GameSettings.PlayersColorMode = pcmAllyEnemy;
 end;
 
 
@@ -165,7 +165,7 @@ begin
   TrackBar_Music.Position          := Round(gGameApp.GameSettings.MusicVolume * TrackBar_Music.MaxValue);
   CheckBox_MusicOff.Checked        := gGameApp.GameSettings.MusicOff;
   CheckBox_ShuffleOn.Checked       := gGameApp.GameSettings.ShuffleOn;
-  CheckBox_AllyEnemy_ColorMode.Checked := not gGameApp.GameSettings.ShowPlayersColors;
+  CheckBox_AllyEnemy_ColorMode.Checked := gGameApp.GameSettings.PlayersColorMode = pcmAllyEnemy;
 
   if gGame.IsReplay then
     CheckBox_ReplaySpecShowBeacons.Checked := gGameApp.GameSettings.ReplayShowBeacons
@@ -195,7 +195,10 @@ begin
   gGameApp.GameSettings.MusicVolume           := TrackBar_Music.Position / TrackBar_Music.MaxValue;
   gGameApp.GameSettings.MusicOff              := CheckBox_MusicOff.Checked;
   gGameApp.GameSettings.ShuffleOn             := CheckBox_ShuffleOn.Checked;
-  gGameApp.GameSettings.ShowPlayersColors     := not CheckBox_AllyEnemy_ColorMode.Checked;
+  if CheckBox_AllyEnemy_ColorMode.Checked then
+    gGameApp.GameSettings.PlayersColorMode := pcmAllyEnemy
+  else
+    gGameApp.GameSettings.PlayersColorMode := pcmColors;
 
   if gGame.IsReplay then
     gGameApp.GameSettings.ReplayShowBeacons   := CheckBox_ReplaySpecShowBeacons.Checked

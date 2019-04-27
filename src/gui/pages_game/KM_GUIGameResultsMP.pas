@@ -1239,7 +1239,7 @@ var
   Teams: TKMByteSetArray;
   NonTeamHands: set of Byte;
 begin
-  Teams := gHands.GetTeams;
+  Teams := gHands.GetTeamsOfAllies;
   NonTeamHands := [0..gHands.Count - 1];
 
   //Get non team hands
@@ -1306,7 +1306,7 @@ var
 begin
   RecreateListToShow(stByTeams);
   fChartSeparatorsPos[stByTeams].Clear;
-  Teams := gHands.GetFullTeams;
+  Teams := gHands.Teams;
   TeamI := 0;
 
   for J := Low(Teams) to High(Teams) do
@@ -1518,7 +1518,7 @@ procedure TKMGameResultsMP.ReinitChartEconomy;
     Chart := GetEconomyChart(aStatType, aEcoStatKind);
     Chart^.Clear;
     Chart^.MaxLength := 0;
-    Chart^.MaxTime   := gGame.GameTickCount div 10;
+    Chart^.MaxTime   := gGame.GameTick div 10;
     Chart^.Peacetime := 60*gGame.GameOptions.Peacetime;
     Chart^.SetSeparatorPositions(fChartSeparatorsPos[aStatType]);
   end;
@@ -1596,7 +1596,7 @@ const
   begin
     aChart^.Clear;
     aChart^.MaxLength := 0;
-    aChart^.MaxTime   := gGame.GameTickCount div 10;
+    aChart^.MaxTime   := gGame.GameTick div 10;
     aChart^.Peacetime := 60*gGame.GameOptions.Peacetime;
     aChart^.SetSeparatorPositions(fChartSeparatorsPos[aStatType]);
 
@@ -1745,7 +1745,7 @@ begin
         Chart := @ChartArmy^.Chart;
         Chart^.Clear;
         Chart^.MaxLength := 0;
-        Chart^.MaxTime := gGame.GameTickCount div 10;
+        Chart^.MaxTime := gGame.GameTick div 10;
         Chart^.Peacetime := 60*gGame.GameOptions.Peacetime;
         Chart^.SetSeparatorPositions(fChartSeparatorsPos[ST]);
         Chart^.Caption := ChartArmy^.ChartType.GUIName + ' - ' + gResTexts[CHART_ARMY_CAPTION_INDEX[CKind]];

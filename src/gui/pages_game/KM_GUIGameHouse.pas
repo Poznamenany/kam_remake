@@ -11,6 +11,7 @@ const LINE_HEIGHT = 25; //Each new Line is placed ## pixels after previous
 type
   TKMGUIGameHouse = class
   private
+    fAnimStep: Cardinal;
     fLastSchoolUnit: Byte;  //Last unit that was selected in School, global for all schools player owns
     fLastBarracksUnit: Byte; //Last unit that was selected in Barracks, global for all barracks player owns
     fLastTHUnit: Byte; //Last unit that was selected in Townhall, global for all townhalls player owns
@@ -144,6 +145,8 @@ uses
 
 const
   MAX_UNITS_TO_EQUIP = 100;
+  HOUSE_FLAG_TEX_ID = 1159;
+  HOUSE_FLAG_TEX_ID_FRAME = 5;
 
 
 constructor TKMGUIGameHouse.Create(aParent: TKMPanel; aSetViewportEvent: TPointFEvent);
@@ -153,6 +156,7 @@ begin
   inherited Create;
 
   fSetViewportEvent := aSetViewportEvent;
+  fAnimStep := 0;
 
   Panel_House := TKMPanel.Create(aParent, TB_PAD, 44, TB_WIDTH, 332);
     //Thats common things
@@ -536,12 +540,13 @@ var
 begin
   AskDemolish := aAskDemolish;
 
+  Inc(fAnimStep);
+  Image_PlayerFlag.TexID := HOUSE_FLAG_TEX_ID + fAnimStep mod HOUSE_FLAG_TEX_ID_FRAME;
+
   //Hide all House sub-pages
   for I := 0 to Panel_House.ChildCount - 1 do
     if Panel_House.Childs[I] is TKMPanel then
       Panel_House.Childs[I].Hide;
-
-
 
   Panel_House.SetCanChangeEnable(gMySpectator.IsSelectedMyObj, DoNotDisableControls);
 

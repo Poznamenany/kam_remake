@@ -19,10 +19,10 @@ type
   protected
     Panel_Stats: TKMPanel;
       Panel_StatBlock: array [0..STATS_LINES_CNT-1] of TKMPanel;
-      Stat_HousePic: array [HOUSE_MIN..HOUSE_MAX] of TKMImage;
-      Stat_UnitPic: array [CITIZEN_MIN..CITIZEN_MAX] of TKMImage;
-      Stat_HouseQty, Stat_HouseWip: array [HOUSE_MIN..HOUSE_MAX] of TKMLabel;
-      Stat_UnitQty, Stat_UnitWip: array [CITIZEN_MIN..CITIZEN_MAX] of TKMLabel;
+        Stat_HousePic: array [HOUSE_MIN..HOUSE_MAX] of TKMImage;
+        Stat_UnitPic: array [CITIZEN_MIN..CITIZEN_MAX] of TKMImage;
+        Stat_HouseQty, Stat_HouseWip: array [HOUSE_MIN..HOUSE_MAX] of TKMLabel;
+        Stat_UnitQty, Stat_UnitWip: array [CITIZEN_MIN..CITIZEN_MAX] of TKMLabel;
       Button_ShowStats: TKMButtonFlat;
   public
     constructor Create(aParent: TKMPanel; aOnShowStats: TNotifyEvent; aSetViewportEvent: TPointFEvent);
@@ -75,7 +75,7 @@ begin
         if StatPlan[I].HouseType[K] <> htNone then
         begin
           HT := StatPlan[I].HouseType[K];
-          Stat_HousePic[HT] := TKMImage.Create(Panel_StatBlock[I], OffX, 0, HOUSE_W, 30, 41); //Filled with [?] at start
+          Stat_HousePic[HT] := TKMImage.Create(Panel_StatBlock[I], OffX, 0, HOUSE_W, 30, 41, rxGui); //Filled with [?] at start
           Stat_HousePic[HT].Hint := gRes.Houses[HT].HouseName;
           Stat_HousePic[HT].ImageCenter;
           Stat_HousePic[HT].Tag := Byte(HT);
@@ -90,7 +90,7 @@ begin
         if StatPlan[I].UnitType[K] <> utNone then
         begin
           UT := StatPlan[I].UnitType[K];
-          Stat_UnitPic[UT] := TKMImage.Create(Panel_StatBlock[I], OffX, 0, UNIT_W, 30, gRes.Units[UT].GUIIcon);
+          Stat_UnitPic[UT] := TKMImage.Create(Panel_StatBlock[I], OffX, 0, UNIT_W, 30, gRes.Units[UT].GUIIcon, rxGui);
           Stat_UnitPic[UT].Hint := gRes.Units[UT].GUIName;
           Stat_UnitPic[UT].ImageCenter;
           Stat_UnitWip[UT] := TKMLabel.Create(Panel_StatBlock[I], OffX + UNIT_W  ,  0,  '', fntGrey, taRight);

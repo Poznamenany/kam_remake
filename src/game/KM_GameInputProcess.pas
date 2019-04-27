@@ -130,9 +130,17 @@ const
   BlockedByPeaceTime: set of TKMGameInputCommandType = [gicArmySplit, gicArmySplitSingle,
     gicArmyLink, gicArmyAttackUnit, gicArmyAttackHouse, gicArmyHalt,
     gicArmyFormation,  gicArmyWalk, gicArmyStorm, gicHouseBarracksEquip, gicHouseTownHallEquip];
-  AllowedAfterDefeat: set of TKMGameInputCommandType = [gicGameAlertBeacon, gicGameAutoSave, gicGameAutoSaveAfterPT, gicGameSaveReturnLobby, gicGameMessageLogRead, gicTempDoNothing];
-  AllowedInCinematic: set of TKMGameInputCommandType = [gicGameAlertBeacon, gicGameAutoSave, gicGameAutoSaveAfterPT, gicGameSaveReturnLobby, gicGameMessageLogRead, gicTempDoNothing];
-  AllowedBySpectators: set of TKMGameInputCommandType = [gicGameAlertBeacon, gicGameAutoSave, gicGameAutoSaveAfterPT, gicGameSaveReturnLobby, gicGamePlayerDefeat, gicTempDoNothing];
+  AllowedAfterDefeat: set of TKMGameInputCommandType =
+    [gicGameAlertBeacon, gicGameAutoSave, gicGameAutoSaveAfterPT, gicGameSaveReturnLobby, gicGameMessageLogRead, gicTempDoNothing];
+  AllowedInCinematic: set of TKMGameInputCommandType =
+    [gicGameAlertBeacon, gicGameAutoSave, gicGameAutoSaveAfterPT, gicGameSaveReturnLobby, gicGameMessageLogRead, gicTempDoNothing];
+  AllowedBySpectators: set of TKMGameInputCommandType =
+    [gicGameAlertBeacon, gicGameAutoSave, gicGameAutoSaveAfterPT, gicGameSaveReturnLobby, gicGamePlayerDefeat, gicTempDoNothing];
+  //Those commands should not have random check, because they they are not strictly happen, depends of player config and actions
+  //We want to make it possible to reproduce AI city build knowing only seed + map config
+  //Autosave and other commands random checks could break it, since every command have its own random check (and KaMRandom call)
+  SkipRandomChecksFor: set of TKMGameInputCommandType =
+    [gicGameAlertBeacon, gicGameAutoSave, gicGameAutoSaveAfterPT, gicGameSaveReturnLobby];
 
   ArmyOrderCommands: set of TKMGameInputCommandType = [
     gicArmyFeed,
@@ -318,7 +326,6 @@ type
     procedure CmdConsoleCommand(aCommandType: TKMGameInputCommandType; const aAnsiTxtParam: AnsiString;
                                 const aUniTxtArray: TKMScriptCommandParamsArray);
 
-    procedure CmdGame(aCommandType: TKMGameInputCommandType; aValue:boolean); overload;
     procedure CmdGame(aCommandType: TKMGameInputCommandType; aDateTime: TDateTime); overload;
     procedure CmdGame(aCommandType: TKMGameInputCommandType; aParam1, aParam2: Integer); overload;
     procedure CmdGame(aCommandType: TKMGameInputCommandType; const aLoc: TKMPointF; aOwner: TKMHandID; aColor: Cardinal); overload;
@@ -334,14 +341,14 @@ type
     procedure UpdateState(aTick: Cardinal); virtual;
 
     //Replay methods
-    procedure Save(SaveStream: TKMemoryStream);
+    procedure SaveToStream(SaveStream: TKMemoryStream);
     procedure SaveToFile(const aFileName: UnicodeString);
-    procedure Load(LoadStream: TKMemoryStream);
+    procedure LoadFromStream(LoadStream: TKMemoryStream);
     procedure LoadFromFile(const aFileName: UnicodeString);
     property Count: Integer read fCount;
     property ReplayState: TKMGIPReplayState read fReplayState;
-    function GetLastTick: Cardinal; virtual;
-    function ReplayEnded: Boolean; virtual;
+    function GetLastTick: Cardinal;
+    function ReplayEnded: Boolean;
 
     class function GIPCommandToString(aGIC: TKMGameInputCommand): UnicodeString;
     class function StoredGIPCommandToString(aCommand: TKMStoredGIPCommand): String;
@@ -680,8 +687,8 @@ begin
     if not (aCommand.CommandType in AllowedInCinematic) and (P.InCinematic) then
       Exit;
 
-    if gLog.CanLogCommands() then
-      gLog.LogCommands(Format('Tick: %6d Exec command: %s', [gGame.GameTickCount, GIPCommandToString(aCommand)]));
+    if (gLog <> nil) and gLog.CanLogCommands() then
+      gLog.LogCommands(Format('Tick: %6d Exec command: %s', [gGame.GameTick, GIPCommandToString(aCommand)]));
 
     case CommandType of
       gicArmyFeed:         SrcGroup.OrderFood(True);
@@ -992,13 +999,6 @@ begin
 end;
 
 
-procedure TKMGameInputProcess.CmdGame(aCommandType: TKMGameInputCommandType; aValue: Boolean);
-begin
-  Assert(aCommandType = gicGamePause);
-  TakeCommand(MakeCommand(aCommandType, Integer(aValue)));
-end;
-
-
 procedure TKMGameInputProcess.CmdGame(aCommandType: TKMGameInputCommandType; aDateTime: TDateTime);
 begin
   Assert(aCommandType in [gicGameAutoSave, gicGameAutoSaveAfterPT, gicGameSaveReturnLobby]);
@@ -1041,7 +1041,7 @@ begin
 end;
 
 
-procedure TKMGameInputProcess.Save(SaveStream: TKMemoryStream);
+procedure TKMGameInputProcess.SaveToStream(SaveStream: TKMemoryStream);
 var
   I: Integer;
 begin
@@ -1064,19 +1064,19 @@ var
   S: TKMemoryStream;
 begin
   S := TKMemoryStream.Create;
-  Save(S);
+  SaveToStream(S);
   S.SaveToFile(aFileName);
   S.Free;
 end;
 
 
-procedure TKMGameInputProcess.Load(LoadStream: TKMemoryStream);
+procedure TKMGameInputProcess.LoadFromStream(LoadStream: TKMemoryStream);
 var
   FileVersion: AnsiString;
   I: Integer;
 begin
   LoadStream.ReadA(FileVersion);
-  Assert(FileVersion = GAME_REVISION, 'Old or unexpected replay file. '+GAME_REVISION+' is required.');
+  Assert(FileVersion = GAME_REVISION, 'Old or unexpected replay file. ' + GAME_REVISION + ' is required.');
   LoadStream.Read(fCount);
   SetLength(fQueue, fCount + 1);
 
@@ -1098,7 +1098,7 @@ begin
   if not FileExists(aFileName) then Exit;
   S := TKMemoryStream.Create;
   S.LoadFromFile(aFileName);
-  Load(S);
+  LoadFromStream(S);
   S.Free;
 end;
 
@@ -1113,10 +1113,7 @@ end;
 { See if replay has ended (no more commands in queue) }
 function TKMGameInputProcess.ReplayEnded: Boolean;
 begin
-  if ReplayState = gipReplaying then
-    Result := fCursor > fCount
-  else
-    Result := False;
+  Result := (ReplayState = gipReplaying) and (fCursor > fCount);
 end;
 
 
@@ -1131,12 +1128,14 @@ begin
   Inc(fCount);
   if Length(fQueue) <= fCount then SetLength(fQueue, fCount + 128);
 
-  fQueue[fCount].Tick    := gGame.GameTickCount;
+  fQueue[fCount].Tick    := gGame.GameTick;
   fQueue[fCount].Command := aCommand;
-  if (aCommand.CommandType = gicGameAutoSave) then // Maybe also gicGameAutoSaveAfterPT and gicGameSaveReturnLobby
+  //Skip random check generation. We do not want KaMRandom to be called here
+  if SKIP_RNG_CHECKS_FOR_SOME_GIC and (aCommand.CommandType in SkipRandomChecksFor) then
     fQueue[fCount].Rand := 0
   else
-    fQueue[fCount].Rand    := Cardinal(KaMRandom(MaxInt, 'TKMGameInputProcess.StoreCommand')); //This will be our check to ensure everything is consistent
+    //This will be our check to ensure everything is consistent
+    fQueue[fCount].Rand := Cardinal(KaMRandom(MaxInt, 'TKMGameInputProcess.StoreCommand'));
 end;
 
 
