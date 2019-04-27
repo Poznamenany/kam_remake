@@ -48,15 +48,19 @@ type
     function Execute: TKMTaskResult; override;
     function CouldBeCancelled: Boolean; override;
     procedure Save(SaveStream: TKMemoryStream); override;
+
+    function ObjToString(aSeparator: String = ', '): String; override;
+
+    procedure Paint; override; //Used only for debug so far
   end;
 
 
 implementation
 uses
-  Math,
+  Math, TypInfo,
   KM_HandsCollection, KM_Hand, KM_ResHouses,
   KM_Terrain, KM_UnitWarrior, KM_HouseBarracks, KM_HouseTownHall, KM_HouseInn,
-  KM_UnitTaskBuild, KM_Log;
+  KM_UnitTaskBuild, KM_Log, KM_RenderAux;
 
 
 { TTaskDeliver }
@@ -296,14 +300,14 @@ end;
 procedure TKMTaskDeliver.SetToHouse(aToHouse: TKMHouse);
 begin
   fToHouse := aToHouse;
-  fPointBelowToHouse := fToHouse.PointBelowEntrance;
+  fPointBelowToHouse := fToHouse.PointBelowEntrance; //save that point separately, in case fToHouse will be destroyed
 end;
 
 
 procedure TKMTaskDeliver.SetFromHouse(aFromHouse: TKMHouse);
 begin
   fFrom := aFromHouse;
-  fPointBelowFromHouse := aFromHouse.PointBelowEntrance;
+  fPointBelowFromHouse := aFromHouse.PointBelowEntrance; //save that point separately, in case fFrom will be destroyed
 end;
 
 
@@ -575,6 +579,56 @@ begin
   end;
 
   Inc(fPhase);
+end;
+
+
+function TKMTaskDeliver.ObjToString(aSeparator: String = ', '): String;
+var
+  FromStr, ToUStr, ToHStr: String;
+begin
+  FromStr := 'nil';
+  ToHStr := 'nil';
+  ToUStr := 'nil';
+
+  if fFrom <> nil then
+    FromStr := fFrom.ObjToStringShort(',');
+
+  if fToHouse <> nil then
+    ToHStr := fToHouse.ObjToStringShort(',');
+
+  if fToUnit <> nil then
+    ToUStr := fToUnit.ObjToStringShort(',');
+
+  Result := inherited +
+            Format('%s|FromH = [%s]%s|ToH = [%s]%sFromU = [%s]%s|WareT = %s%sPBelow FromH = %s%sPBelow ToH = %s',
+                   [aSeparator,
+                    FromStr, aSeparator,
+                    ToHStr, aSeparator,
+                    ToUStr, aSeparator,
+                    GetEnumName(TypeInfo(TKMWareType), Integer(fWareType)), aSeparator,
+                    TypeToString(fPointBelowFromHouse), aSeparator,
+                    TypeToString(fPointBelowToHouse)]);
+end;
+
+
+procedure TKMTaskDeliver.Paint;
+var
+  FromP, ToP: TKMPoint;
+begin
+  if SHOW_UNIT_ROUTES
+    and (gMySpectator.Selected = fUnit) then
+  begin
+    gRenderAux.RenderWireTile(fPointBelowToHouse, icBlue);
+    if fFrom <> nil then
+      gRenderAux.RenderWireTile(fFrom.PointBelowEntrance, icDarkBlue);
+
+    gRenderAux.RenderWireTile(fPointBelowToHouse, icOrange);
+    if fToHouse <> nil then
+      gRenderAux.RenderWireTile(fToHouse.PointBelowEntrance, icLightRed);
+    if fToUnit <> nil then
+      gRenderAux.RenderWireTile(fToUnit.CurrPosition, icRed);
+  end;
+
 end;
 
 

@@ -40,6 +40,7 @@ type
     procedure UnitPointers(pX, pY: Single; Count: Integer);
     procedure UnitRoute(NodeList: TKMPointList; Pos: Integer; aUnitType: Byte);
     procedure Wires(const aRect: TKMRect);
+    procedure RenderWireTile(const P: TKMPoint; Col: TColor4; aInset: Single = 0.0);
   end;
 
 
@@ -521,6 +522,28 @@ begin
     end;
     glEnd;
   glPopAttrib;
+end;
+
+
+//Render wire on tile
+//P - tile coords
+//Col - Color
+//aInset - Internal adjustment, to render wire "inside" tile
+procedure TRenderAux.RenderWireTile(const P: TKMPoint; Col: TColor4; aInset: Single = 0.0);
+begin
+  if not gTerrain.TileInMapCoords(P.X, P.Y) then Exit;
+
+  TRender.BindTexture(0); // We have to reset texture to default (0), because it could be bind to any other texture (atlas)
+
+  glColor4ubv(@Col);
+  glBegin(GL_LINE_LOOP);
+    with gTerrain do begin
+      glVertex2f(P.X-1 + aInset, P.Y-1 + aInset - Land[P.Y  ,P.X  ].Height/CELL_HEIGHT_DIV);
+      glVertex2f(P.X   - aInset, P.Y-1 + aInset - Land[P.Y  ,P.X+1].Height/CELL_HEIGHT_DIV);
+      glVertex2f(P.X   - aInset, P.Y   - aInset - Land[P.Y+1,P.X+1].Height/CELL_HEIGHT_DIV);
+      glVertex2f(P.X-1 + aInset, P.Y   - aInset - Land[P.Y+1,P.X  ].Height/CELL_HEIGHT_DIV);
+    end;
+  glEnd;
 end;
 
 

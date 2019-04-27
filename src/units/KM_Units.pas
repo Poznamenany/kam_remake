@@ -68,6 +68,8 @@ type
 
     function Execute: TKMTaskResult; virtual; abstract;
     procedure Save(SaveStream: TKMemoryStream); virtual;
+
+    procedure Paint; virtual;
   end;
 
 
@@ -2389,6 +2391,9 @@ begin
   if fAction <> nil then
     fAction.Paint;
 
+  if fTask <> nil then
+    fTask.Paint;
+
   if SHOW_POINTER_DOTS then
     gRenderAux.UnitPointers(fPositionF.X + 0.5 + GetSlide(axX), fPositionF.Y + 1   + GetSlide(axY), fPointerCount);
 end;
@@ -2478,6 +2483,12 @@ begin
     SaveStream.Write(Integer(0));
   SaveStream.Write(fPhase);
   SaveStream.Write(fPhase2);
+end;
+
+
+procedure TKMUnitTask.Paint;
+begin
+
 end;
 
 

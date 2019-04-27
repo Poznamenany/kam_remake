@@ -1281,18 +1281,11 @@ begin
 
   TRender.BindTexture(0); // We have to reset texture to default (0), because it could be bind to any other texture (atlas)
 
+  //Change LineWidth
   if aLineWidth > 0 then
     glLineWidth(aLineWidth);
 
-  glColor4ubv(@Col);
-  glBegin(GL_LINE_LOOP);
-    with gTerrain do begin
-      glVertex2f(P.X-1 + aInset, P.Y-1 + aInset - Land[P.Y  ,P.X  ].Height/CELL_HEIGHT_DIV);
-      glVertex2f(P.X   - aInset, P.Y-1 + aInset - Land[P.Y  ,P.X+1].Height/CELL_HEIGHT_DIV);
-      glVertex2f(P.X   - aInset, P.Y   - aInset - Land[P.Y+1,P.X+1].Height/CELL_HEIGHT_DIV);
-      glVertex2f(P.X-1 + aInset, P.Y   - aInset - Land[P.Y+1,P.X  ].Height/CELL_HEIGHT_DIV);
-    end;
-  glEnd;
+  gRenderAux.RenderWireTile(P, Col, aInset);
 
   if aLineWidth > 0 then
     SetDefaultRenderParams;
