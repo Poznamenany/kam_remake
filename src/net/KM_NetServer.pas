@@ -172,6 +172,7 @@ type
 
 implementation
 uses
+  //TypInfo, KM_Log,
   KM_CommonTypes;
 
 const
@@ -206,6 +207,7 @@ begin
   Inc(fScheduledPacketsCnt);
   SetLength(fScheduledPackets, fScheduledPacketsSize + aLength);
 
+  //Append data packet to the end of cumulative packet
   Move(aData^, fScheduledPackets[fScheduledPacketsSize], aLength);
   Inc(fScheduledPacketsSize, aLength);
   //gLog.AddTime(Format('*** add scheduled packet: length = %d Cnt = %d totalSize = %d', [aLength, fScheduledPacketsCnt, fScheduledPacketsSize]));
@@ -734,7 +736,7 @@ begin
       PByte(P)^ := aServerClient.fScheduledPacketsCnt;
       //Copy collected packets data with 1 byte shift
       Move(aServerClient.fScheduledPackets[0], Pointer(NativeUInt(P) + 1)^, aServerClient.fScheduledPacketsSize);
-      DoSendData(aServerClient.fHandle, P, aServerClient.fScheduledPacketsSize + 1);
+      DoSendData(aServerClient.fHandle, P, aServerClient.fScheduledPacketsSize + 1); //+1 byte for packets number
       aServerClient.ClearScheduledPackets;
     finally
       FreeMem(P);
@@ -941,27 +943,39 @@ end;
 //Someone has send us something
 //Send only complete messages to allow to add server messages inbetween
 procedure TKMNetServer.DataAvailable(aHandle: TKMNetHandleIndex; aData: Pointer; aLength: Cardinal);
+//  function GetMessKind(aSenderHandle: TKMNetHandleIndex; aData: Pointer; aLength: Cardinal): TKMessageKind;
+//  var
+//    M: TKMemoryStream;
+//  begin
+//    M := TKMemoryStream.Create;
+//    M.WriteBuffer(aData^, aLength);
+//    M.Position := 0;
+//    M.Read(Result, SizeOf(TKMessageKind));
+//    M.Free;
+//  end;
+
 var
   PacketSender, PacketRecipient: TKMNetHandleIndex;
   PacketLength: Word;
   I, SenderRoom: Integer;
   SenderClient: TKMServerClient;
+//  Kind: TKMessageKind;
 begin
   Inc(BytesRX, aLength);
-
   SenderClient := fClientList.GetByHandle(aHandle);
   if SenderClient = nil then
   begin
     Status('Warning: Data Available from an unassigned client');
-    exit;
+//    gLog.AddTime('Warning: Data Available from an unassigned client');
+    Exit;
   end;
 
   //Append new data to buffer
-  SetLength( SenderClient.fBuffer, SenderClient.fBufferSize + aLength);
+  SetLength(SenderClient.fBuffer, SenderClient.fBufferSize + aLength);
   Move(aData^, SenderClient.fBuffer[SenderClient.fBufferSize], aLength);
   SenderClient.fBufferSize := SenderClient.fBufferSize + aLength;
 
-  //gLog.AddTime('----  Received data from ' + GetNetAddressStr(aHandle) + ': length = ' + IntToStr(aLength));
+//  gLog.AddTime('----  Received data from ' + GetNetAddressStr(aHandle) + ': length = ' + IntToStr(aLength));
 
   //Try to read data packet from buffer
   while SenderClient.fBufferSize >= 6 do
@@ -974,29 +988,33 @@ begin
     if not (IsValidHandle(PacketRecipient) and IsValidHandle(PacketSender) and (PacketLength <= MAX_PACKET_SIZE)) then
     begin
       //When we receive corrupt data kick the client since we have no way to recover (if in-game client will auto reconnect)
-      Status('Warning: Corrupt data received, kicking client '+IntToStr(aHandle));
+      Status('Warning: Corrupt data received, kicking client ' + IntToStr(aHandle));
       SenderClient.fBufferSize := 0;
       SetLength(SenderClient.fBuffer, 0);
       fServer.Kick(aHandle);
-      exit;
+      Exit;
     end;
 
-    if PacketLength > SenderClient.fBufferSize-6 then
-      exit; //This message was split, so we must wait for the remainder of the message to arrive
+    if PacketLength > SenderClient.fBufferSize - 6 then
+      Exit; //This message was split, so we must wait for the remainder of the message to arrive
 
     SenderRoom := fClientList.GetByHandle(aHandle).Room;
 
     //If sender from packet contents doesn't match the socket handle, don't process this packet (client trying to fake sender)
     if PacketSender = aHandle then
+    begin
+//      Kind := GetMessKind(PacketSender, @SenderClient.fBuffer[6], PacketLength);
+//      gLog.AddTime(Format('Got msg %s from %d to %d',
+//                          [GetEnumName(TypeInfo(TKMessageKind), Integer(Kind)), PacketSender, PacketRecipient]));
       case PacketRecipient of
         NET_ADDRESS_OTHERS: //Transmit to all except sender
-            //Iterate backwards because sometimes calling Send results in ClientDisconnect (LNet only?)
-            for i:=fClientList.Count-1 downto 0 do
-                if (aHandle <> fClientList[i].Handle) and (SenderRoom = fClientList[i].Room) then
-                  ScheduleSendData(fClientList[i].Handle, @SenderClient.fBuffer[0], PacketLength+6);
+                //Iterate backwards because sometimes calling Send results in ClientDisconnect (LNet only?)
+                for I := fClientList.Count - 1 downto 0 do
+                  if (aHandle <> fClientList[i].Handle) and (SenderRoom = fClientList[i].Room) then
+                    ScheduleSendData(fClientList[i].Handle, @SenderClient.fBuffer[0], PacketLength+6);
         NET_ADDRESS_ALL: //Transmit to all including sender (used mainly by TextMessages)
                 //Iterate backwards because sometimes calling Send results in ClientDisconnect (LNet only?)
-                for i:=fClientList.Count-1 downto 0 do
+                for I := fClientList.Count - 1 downto 0 do
                   if SenderRoom = fClientList[i].Room then
                     ScheduleSendData(fClientList[i].Handle, @SenderClient.fBuffer[0], PacketLength+6);
         NET_ADDRESS_HOST:
@@ -1006,14 +1024,15 @@ begin
                 RecieveMessage(PacketSender, @SenderClient.fBuffer[6], PacketLength);
         else    ScheduleSendData(PacketRecipient, @SenderClient.fBuffer[0], PacketLength+6);
       end;
+    end;
 
     //Processing that packet may have caused this client to be kicked (joining room where banned)
     //and in that case SenderClient is invalid so we must exit immediately
     if fClientList.GetByHandle(aHandle) = nil then
       Exit;
 
-    if SenderClient.fBufferSize > 6+PacketLength then //Check range
-      Move(SenderClient.fBuffer[6+PacketLength], SenderClient.fBuffer[0], SenderClient.fBufferSize-PacketLength-6);
+    if SenderClient.fBufferSize > 6 + PacketLength then //Check range
+      Move(SenderClient.fBuffer[6 + PacketLength], SenderClient.fBuffer[0], SenderClient.fBufferSize-PacketLength-6);
     SenderClient.fBufferSize := SenderClient.fBufferSize - PacketLength - 6;
   end;
 end;

@@ -14,8 +14,8 @@ type
   TKMAttackRequest = record
     Active, FoodShortage: Boolean;
     BestAllianceCmp,WorstAllianceCmp: Single;
-    BestEnemy: TKMHandID; // or index of Enemies array
-    BestPoint: TKMPoint;
+    BestEnemy, WorstEnemy: TKMHandID; // or index of Enemies array
+    BestPoint, WorstPoint: TKMPoint;
     Enemies: TKMHandIDArray;
   end;
 
@@ -124,6 +124,8 @@ begin
     SaveStream.Write(WorstAllianceCmp);
     SaveStream.Write(BestEnemy);
     SaveStream.Write(BestPoint);
+    SaveStream.Write(WorstEnemy);
+    SaveStream.Write(WorstPoint);
     SaveStream.Write( Integer(Length(Enemies)) );
     if (Length(Enemies) > 0) then
       SaveStream.Write(Enemies[0], SizeOf(Enemies[0])*Length(Enemies));
@@ -171,6 +173,8 @@ begin
     LoadStream.Read(WorstAllianceCmp);
     LoadStream.Read(BestEnemy);
     LoadStream.Read(BestPoint);
+    LoadStream.Read(WorstEnemy);
+    LoadStream.Read(WorstPoint);
     LoadStream.Read(Count);
     SetLength(Enemies,Count);
     if (Length(Enemies) > 0) then
@@ -371,7 +375,7 @@ type
     GroupArr: TKMUnitGroupArray;
   end;
   // Find all available groups
-  function GetGroups(aTakeAllIn: Boolean): TKMAvailableGroups;
+  function GetGroups(aMobilizationCoef: Single): TKMAvailableGroups;
   const
     MIN_TROOPS_IN_GROUP = 4;
   var
@@ -388,12 +392,12 @@ type
       if (Group = nil)
         OR Group.IsDead
         OR not Group.IsIdleToAI([wtokFlagPoint, wtokHaltOrder])
-        OR (not aTakeAllIn AND (Group.Count < MIN_TROOPS_IN_GROUP)) then
+        OR ((aMobilizationCoef < 1) AND (Group.Count < MIN_TROOPS_IN_GROUP)) then
         Continue;
       // Add grop pointer to array (but dont increase count now so it will be ignored)
       AG.GroupArr[AG.Count] := Group;
       // Check if group can be in array
-      if aTakeAllIn then
+      if (aMobilizationCoef = 1) then
       begin
         // Take all groups out of attack class
         if not fAttack.IsGroupInAction(Group) then
@@ -401,8 +405,8 @@ type
       end
       else
       begin
-        // Take group in defence position
-        DP := fDefence.FindPositionOf(Group,True); // True = First line will not be considered
+        // Take group in defence position if it is required by mobilization
+        DP := fDefence.FindPositionOf(Group, KaMRandom('TKMArmyManagement.RecruitSoldiers') < aMobilizationCoef ); // True = First line will not be considered
         if (DP <> nil) then
           Inc(AG.Count,1); // Confirm that the group should be in array GroupArr
       end;
@@ -592,13 +596,13 @@ type
   end;
 const
   MIN_DEF_RATIO = 1.2;
+  ATT_ADVANTAGE = 0.2;
   MIN_BEST_ALLI_CMP = 0.8;
   MIN_WORST_ALLI_CMP = 0.5;
   MIN_GROUPS_IN_ATTACK = 4;
 var
-  TakeAllIn: Boolean;
   K: Integer;
-  DefRatio: Single;
+  DefRatio, MobilizationCoef: Single;
   TargetPoint: TKMPoint;
   AG: TKMAvailableGroups;
 begin
@@ -609,25 +613,34 @@ begin
     DefRatio := fDefence.DefenceStatus();
     with fAttackRequest do
     begin
-      TakeAllIn := (BestAllianceCmp > MIN_BEST_ALLI_CMP) // The weakest opponent have not enought soldiers
-                   OR (WorstAllianceCmp > MIN_WORST_ALLI_CMP) // The strongest opponent have not enought soldiers
-                   OR (gGame.MissionMode = mmTactic);
-      if (DefRatio < MIN_DEF_RATIO) AND not FoodShortage AND not TakeAllIn then // AI has not enought soldiers in defence AND opponent is not weak
+      // Exit if AI has NOT enought soldiers in defence AND there is NOT food or there are multiple oponents
+      if (DefRatio < MIN_DEF_RATIO) AND (FoodShortage OR (BestEnemy <> WorstEnemy)) AND (gGame.MissionMode <> mmTactic) then
         Exit;
+      // 1v1 or special game mode
+      if (BestEnemy = WorstEnemy) OR (gGame.MissionMode = mmTactic) then
+        MobilizationCoef := 1
+      // Else compute if it is necessary to mobilize the first defence line (or fraction)
+      else
+      begin
+        // Relative def ratio
+        DefRatio := Max( 0, (DefRatio - 1) / Max(1, DefRatio) ); // = <0,1); 0 = army is in the first line of def. pos.; 1 = army is in second lines
+        // Mobilization of the first line  //  * (WorstAllianceCmp)
+        MobilizationCoef := Min(1, (1+ATT_ADVANTAGE) / (1+BestAllianceCmp) ) * (1 - DefRatio);
+      end;
     end;
     // Get array of pointers to available groups
-    AG := GetGroups(TakeAllIn);
+    AG := GetGroups(MobilizationCoef);
     // If we dont have enought groups then exit (if we should take all check if there are already some combat groups)
-    if (not TakeAllIn OR (fAttack.Count > 2)) AND (AG.Count < MIN_GROUPS_IN_ATTACK) then
+    if ((MobilizationCoef < 1) OR (fAttack.Count > 2)) AND (AG.Count < MIN_GROUPS_IN_ATTACK) then
       Exit;
         // Find best target of owner and order attack
-    if FindBestTarget(fAttackRequest.BestEnemy, TargetPoint, TakeAllIn) then
+    if FindBestTarget(fAttackRequest.BestEnemy, TargetPoint, MobilizationCoef = 1) then
       OrderAttack(TargetPoint, AG);
   end
   else if not fSetup.AutoAttack then
     with gHands[fOwner].AI.General do
     begin
-      AG := GetGroups(True);
+      AG := GetGroups(1);
       for K := 0 to Attacks.Count - 1 do
         if Attacks.CanOccur(K, AG.MenAvailable, AG.GroupsAvailable, gGame.GameTick) then //Check conditions are right
         begin
@@ -712,6 +725,8 @@ begin
   fAttackRequest.WorstAllianceCmp := aAttackRequest.WorstAllianceCmp;
   fAttackRequest.BestEnemy := aAttackRequest.BestEnemy;
   fAttackRequest.BestPoint := aAttackRequest.BestPoint;
+  fAttackRequest.WorstEnemy := aAttackRequest.WorstEnemy;
+  fAttackRequest.WorstPoint := aAttackRequest.WorstPoint;
   SetLength(fAttackRequest.Enemies, Length(aAttackRequest.Enemies) );
   Move(aAttackRequest.Enemies[0], fAttackRequest.Enemies[0], SizeOf(fAttackRequest.Enemies[0])*Length(fAttackRequest.Enemies));
 end;

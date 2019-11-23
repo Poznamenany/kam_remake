@@ -19,6 +19,7 @@ type
   public
     MapEdRecruitCount: Word; //Only used by MapEd
     NotAcceptFlag: array [WARFARE_MIN .. WARFARE_MAX] of Boolean;
+    NotAllowTakeOutFlag: array [WARFARE_MIN .. WARFARE_MAX] of Boolean;
     NotAcceptRecruitFlag: Boolean;
     constructor Create(aUID: Integer; aHouseType: TKMHouseType; PosX, PosY: Integer; aOwner: TKMHandID; aBuildState: TKMHouseBuildState);
     constructor Load(LoadStream: TKMemoryStream); override;
@@ -33,14 +34,16 @@ type
     function CheckResIn(aWare: TKMWareType): Word; override;
     function ResCanAddToIn(aRes: TKMWareType): Boolean; override;
 
-    function ShouldAbandonDelivery(aWareType: TKMWareType): Boolean; override;
+    function ShouldAbandonDeliveryTo(aWareType: TKMWareType): Boolean; override;
+    function ShouldAbandonDeliveryFrom(aWareType: TKMWareType): Boolean; override;
 
     function ResOutputAvailable(aRes: TKMWareType; const aCount: Word): Boolean; override;
     function CanEquip(aUnitType: TKMUnitType): Boolean;
     function RecruitsCount: Integer;
     procedure RecruitsAdd(aUnit: Pointer);
     procedure RecruitsRemove(aUnit: Pointer);
-    procedure ToggleAcceptFlag(aRes: TKMWareType);
+    procedure ToggleNotAcceptFlag(aRes: TKMWareType);
+    procedure ToggleNotAllowTakeOutFlag(aRes: TKMWareType);
     procedure ToggleAcceptRecruits;
     function Equip(aUnitType: TKMUnitType; aCount: Integer): Integer;
     procedure CreateRecruitInside(aIsMapEd: Boolean);
@@ -80,6 +83,7 @@ begin
     fRecruitsList.Add(U);
   end;
   LoadStream.Read(NotAcceptFlag, SizeOf(NotAcceptFlag));
+  LoadStream.Read(NotAllowTakeOutFlag, SizeOf(NotAllowTakeOutFlag));
   LoadStream.Read(NotAcceptRecruitFlag);
 end;
 
@@ -112,7 +116,10 @@ begin
   if (FirstBarracks <> nil) and not FirstBarracks.IsDestroyed then
   begin
     for WT := WARFARE_MIN to WARFARE_MAX do
+    begin
       NotAcceptFlag[WT] := FirstBarracks.NotAcceptFlag[WT];
+      NotAllowTakeOutFlag[WT] := FirstBarracks.NotAllowTakeOutFlag[WT];
+    end;
     NotAcceptRecruitFlag := FirstBarracks.NotAcceptRecruitFlag;
   end;
 end;
@@ -197,15 +204,23 @@ end;
 function TKMHouseBarracks.ResOutputAvailable(aRes: TKMWareType; const aCount: Word): Boolean;
 begin
   Assert(aRes in [WARFARE_MIN .. WARFARE_MAX]);
-  Result := (fResourceCount[aRes] >= aCount);
+  Result := (NewDeliveryMode = dmTakeOut) and (fResourceCount[aRes] >= aCount);
 end;
 
 
-procedure TKMHouseBarracks.ToggleAcceptFlag(aRes: TKMWareType);
+procedure TKMHouseBarracks.ToggleNotAcceptFlag(aRes: TKMWareType);
 begin
   Assert(aRes in [WARFARE_MIN .. WARFARE_MAX]);
 
   NotAcceptFlag[aRes] := not NotAcceptFlag[aRes];
+end;
+
+
+procedure TKMHouseBarracks.ToggleNotAllowTakeOutFlag(aRes: TKMWareType);
+begin
+  Assert(aRes in [WARFARE_MIN .. WARFARE_MAX]);
+
+  NotAllowTakeOutFlag[aRes] := not NotAllowTakeOutFlag[aRes];
 end;
 
 
@@ -215,9 +230,20 @@ begin
 end;
 
 
-function TKMHouseBarracks.ShouldAbandonDelivery(aWareType: TKMWareType): Boolean;
+function TKMHouseBarracks.ShouldAbandonDeliveryTo(aWareType: TKMWareType): Boolean;
 begin
-  Result := inherited or not (aWareType in [WARFARE_MIN .. WARFARE_MAX]) or NotAcceptFlag[aWareType];
+  Result := inherited
+            or not (aWareType in [WARFARE_MIN .. WARFARE_MAX])
+            or NotAcceptFlag[aWareType];
+end;
+
+
+function TKMHouseBarracks.ShouldAbandonDeliveryFrom(aWareType: TKMWareType): Boolean;
+begin
+  Result := inherited
+            or (DeliveryMode <> dmTakeOut)
+            or not (aWareType in [WARFARE_MIN .. WARFARE_MAX])
+            or NotAllowTakeOutFlag[aWareType];
 end;
 
 
@@ -310,6 +336,7 @@ begin
   for I := 0 to RecruitsCount - 1 do
     SaveStream.Write(TKMUnit(fRecruitsList.Items[I]).UID); //Store ID
   SaveStream.Write(NotAcceptFlag, SizeOf(NotAcceptFlag));
+  SaveStream.Write(NotAllowTakeOutFlag, SizeOf(NotAllowTakeOutFlag));
   SaveStream.Write(NotAcceptRecruitFlag);
 end;
 

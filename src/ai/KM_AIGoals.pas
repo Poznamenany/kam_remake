@@ -66,7 +66,7 @@ type
     procedure AddGoal(const aGoal: TKMGoal); overload;
     procedure Delete(aIndex: Integer);
     procedure RemoveReference(aHandIndex: TKMHandID);
-    procedure DisableGoalsForHand(aHandIndex: TKMHandID);
+    procedure UpdateGoalsForHand(aHandIndex: TKMHandID; aEnable: Boolean);
     procedure SetMessageHasShown(aIndex: Integer);
     procedure AddDefaultGoals(aBuildings: Boolean; aOurPlayerIndex: TKMHandID; const aEnemyIndexes: array of TKMHandID);
 
@@ -137,12 +137,13 @@ begin
 end;
 
 
-procedure TKMGoals.DisableGoalsForHand(aHandIndex: TKMHandID);
-var I: Integer;
+procedure TKMGoals.UpdateGoalsForHand(aHandIndex: TKMHandID; aEnable: Boolean);
+var
+  I: Integer;
 begin
   for I := 0 to fCount - 1 do
     if fGoals[I].HandIndex = aHandIndex then
-      fGoals[I].Disabled := True;
+      fGoals[I].Disabled := not aEnable;
 end;
 
 

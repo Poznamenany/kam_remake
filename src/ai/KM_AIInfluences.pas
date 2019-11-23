@@ -14,9 +14,10 @@ const
   AVOID_BUILDING_UNLOCK = 0;
   AVOID_BUILDING_HOUSE_OUTSIDE_LOCK = 10;
   AVOID_BUILDING_HOUSE_INSIDE_LOCK = 15;
-  AVOID_BUILDING_COAL_TILE = 20;
-  AVOID_BUILDING_NODE_LOCK_FIELD = 25;
-  AVOID_BUILDING_NODE_LOCK_ROAD = 30;
+  AVOID_BUILDING_HOUSE_ENTRANCE = 20;
+  AVOID_BUILDING_COAL_TILE = 25;
+  AVOID_BUILDING_NODE_LOCK_FIELD = 30;
+  AVOID_BUILDING_NODE_LOCK_ROAD = 35;
   AVOID_BUILDING_MINE_TILE = 40;
   AVOID_BUILDING_FOREST_RANGE = 200; // Value: 255 <-> AVOID_BUILDING_FOREST_VARIANCE which may forest tiles have
   AVOID_BUILDING_FOREST_MINIMUM = 254 - AVOID_BUILDING_FOREST_RANGE; // Minimum value of forest reservation tiles
@@ -283,7 +284,7 @@ begin
     if (H <> nil) then
     for Y := Max(H.Entrance.Y + 1, 1) to Min(H.Entrance.Y + 2, fMapY - 1) do
     for X := Max(H.Entrance.X - 1, 1) to Min(H.Entrance.X + 1, fMapX - 1) do
-      AvoidBuilding[Y,X] := $FF;
+      AvoidBuilding[Y,X] := AVOID_BUILDING_HOUSE_ENTRANCE;
   end;
 end;
 
@@ -484,7 +485,7 @@ end;
 //  Output: TKMHandIndexArray;
 //begin
 //  SetLength(Result,0);
-//  if not AI_GEN_INFLUENCE_MAPS then
+//  if not AI_GEN_INFLUENCE_MAPS OR (aIdx = High(Word)) then
 //    Exit;
 //
 //  SetLength(Output, MAX_HANDS);
@@ -521,7 +522,7 @@ var
   PL: TKMHandID;
 begin
   Result := 0;
-  if not AI_GEN_INFLUENCE_MAPS then
+  if not AI_GEN_INFLUENCE_MAPS OR (aIdx = High(Word)) then
     Exit;
 
   for PL := 0 to gHands.Count - 1 do
@@ -544,7 +545,7 @@ var
   Ownership: Byte;
 begin
   Result := 0;
-  if not AI_GEN_INFLUENCE_MAPS then
+  if not AI_GEN_INFLUENCE_MAPS OR (aIdx = High(Word)) then
     Exit;
 
   Result := 0;
@@ -578,6 +579,7 @@ const
   INIT_HOUSE_INFLUENCE = 255;
   MAX_INFLUENCE_DISTANCE = 150;
 var
+  AI: Boolean;
   I, Cnt: Integer;
   H: TKMHouse;
   IdxArray: TKMWordArray;
@@ -588,10 +590,13 @@ begin
   // Create array of polygon indexes
   SetLength(IdxArray, gHands[aPL].Houses.Count);
   Cnt := 0;
+  AI := gHands[aPL].HandType = hndComputer;
   for I := 0 to gHands[aPL].Houses.Count - 1 do
   begin
     H := gHands[aPL].Houses[I];
-    if not H.IsDestroyed AND not (H.HouseType in [htWatchTower, htWoodcutters]) then
+    if not H.IsDestroyed
+      AND not (H.HouseType in [htWatchTower, htWoodcutters])
+      AND (AI OR H.IsComplete) then // Player must finish the house to update influence so he cannot troll the AI
     begin
         IdxArray[Cnt] := fNavMesh.KMPoint2Polygon[ H.Position ];
         Cnt := Cnt + 1;

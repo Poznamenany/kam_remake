@@ -18,6 +18,8 @@ type
       Button_BuildWine: TKMButtonFlat;
       Button_BuildCancel: TKMButtonFlat;
       Button_Build: array [1..GUI_HOUSE_COUNT] of TKMButtonFlat;
+      Image_HouseConstructionWood, Image_HouseConstructionStone: TKMImage;
+      Label_HouseConstructionWood, Label_HouseConstructionStone: TKMLabel;
   public
     constructor Create(aParent: TKMPanel);
 
@@ -36,14 +38,14 @@ type
 
 implementation
 uses
-  KM_ResTexts, KM_GameCursor, KM_Resource, KM_ResHouses, KM_ResFonts, KM_RenderUI,
-  KM_Terrain, KM_Points, KM_ResKeys, KM_Utils;
+  KM_ResTexts, KM_GameCursor, KM_Resource, KM_ResHouses, KM_ResFonts, KM_ResWares,
+  KM_RenderUI, KM_Terrain, KM_Points, KM_ResKeys, KM_Utils;
 
 
 { TKMMapEdTownHouses }
 constructor TKMMapEdTownHouses.Create(aParent: TKMPanel);
 var
-  I: Integer;
+  I, Top: Integer;
 begin
   inherited Create;
 
@@ -77,6 +79,15 @@ begin
       else
         Button_Build[I].Hint := gRes.Houses[GUIHouseOrder[I]].HouseName;
     end;
+
+  Top := Button_Build[GUI_HOUSE_COUNT].Bottom + 3;
+
+  Image_HouseConstructionWood := TKMImage.Create(Panel_Build, 9, Top, 32, 32, 353);
+  Image_HouseConstructionWood.ImageCenter;
+  Image_HouseConstructionStone := TKMImage.Create(Panel_Build, 9 + 55, Top, 32, 32, 352);
+  Image_HouseConstructionStone.ImageCenter;
+  Label_HouseConstructionWood  := TKMLabel.Create(Panel_Build,  39, Top + 10, 20, 20, '', fntOutline, taLeft);
+  Label_HouseConstructionStone := TKMLabel.Create(Panel_Build, 39 + 55, Top + 10, 20, 20, '', fntOutline, taLeft);
 
   for I := 0 to High(fSubMenuActionsEvents) do
     fSubMenuActionsEvents[I] := Town_BuildChange;
@@ -139,12 +150,12 @@ begin
   else
 
   for I := 1 to GUI_HOUSE_COUNT do
-  if GUIHouseOrder[I] <> htNone then
-  if Sender = Button_Build[I] then
-  begin
-    gGameCursor.Mode := cmHouses;
-    gGameCursor.Tag1 := Byte(GUIHouseOrder[I]);
-  end;
+    if GUIHouseOrder[I] <> htNone then
+      if Sender = Button_Build[I] then
+      begin
+        gGameCursor.Mode := cmHouses;
+        gGameCursor.Tag1 := Byte(GUIHouseOrder[I]);
+      end;
 
   Town_BuildRefresh;
 end;
@@ -159,9 +170,33 @@ begin
   Button_BuildField.Down  := (gGameCursor.Mode = cmField);
   Button_BuildWine.Down   := (gGameCursor.Mode = cmWine);
 
+  Label_HouseConstructionWood.Caption := '-';
+  Label_HouseConstructionStone.Caption := '-';
+
   for I := 1 to GUI_HOUSE_COUNT do
-  if GUIHouseOrder[I] <> htNone then
-    Button_Build[I].Down := (gGameCursor.Mode = cmHouses) and (gGameCursor.Tag1 = Byte(GUIHouseOrder[I]));
+    if GUIHouseOrder[I] <> htNone then
+    begin
+      Button_Build[I].Down := (gGameCursor.Mode = cmHouses) and (gGameCursor.Tag1 = Byte(GUIHouseOrder[I]));
+      if Button_Build[I].Down then
+      begin
+        Label_HouseConstructionWood.Caption  := IntToStr(gRes.Houses[GUIHouseOrder[I]].WoodCost);
+        Label_HouseConstructionStone.Caption := IntToStr(gRes.Houses[GUIHouseOrder[I]].StoneCost);
+      end;
+    end;
+
+  if Button_BuildRoad.Down then
+  begin
+    Label_HouseConstructionWood.Caption  := '-';
+    Label_HouseConstructionStone.Caption := '1';
+  end else if Button_BuildField.Down then
+  begin
+    Label_HouseConstructionWood.Caption  := '-';
+    Label_HouseConstructionStone.Caption := '-';
+  end else if Button_BuildWine.Down then
+  begin
+    Label_HouseConstructionWood.Caption  := '1';
+    Label_HouseConstructionStone.Caption := '-';
+  end;
 end;
 
 

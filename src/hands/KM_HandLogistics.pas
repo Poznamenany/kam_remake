@@ -421,6 +421,13 @@ begin
   {$ENDIF}
   if DELIVERY_BID_CALC_USE_PATHFINDING then
     fNodeList := TKMPointList.Create;
+
+  if AllowFormLogisticsChange then
+  begin
+    FormLogistics.DeliveriesList.Items.Clear;
+    FormLogistics.OffersList.Items.Clear;
+    FormLogistics.DemandsList.Items.Clear;
+  end;
 end;
 
 
@@ -550,7 +557,10 @@ procedure TKMDeliveries.AddOffer(aHouse: TKMHouse; aWare: TKMWareType; aCount: I
 var
   I, K: Integer;
 begin
-  if aCount = 0 then Exit;
+  if gGame.IsMapEditor then
+    Exit;
+  if aCount = 0 then
+    Exit;
 
   //Add Count of resource to old offer
   for I := 1 to fOfferCount do
@@ -609,6 +619,9 @@ procedure TKMDeliveries.RemAllOffers(aHouse: TKMHouse);
 var
   I: Integer;
 begin
+  if gGame.IsMapEditor then
+    Exit;
+
   //We need to parse whole list, never knowing how many offers the house had
   for I := 1 to fOfferCount do
   if fOffer[I].Loc_House = aHouse then
@@ -628,7 +641,10 @@ procedure TKMDeliveries.RemOffer(aHouse: TKMHouse; aWare: TKMWareType; aCount: C
 var
   I: Integer;
 begin
-  if aCount = 0 then Exit;
+  if gGame.IsMapEditor then
+    Exit;
+  if aCount = 0 then
+    Exit;
   
   //Add Count of resource to old offer
   for I := 1 to fOfferCount do
@@ -658,6 +674,9 @@ procedure TKMDeliveries.RemDemand(aHouse: TKMHouse);
 var
   I: Integer;
 begin
+  if gGame.IsMapEditor then
+    Exit;
+
   Assert(aHouse <> nil);
   for I := 1 to fDemandCount do
     if fDemand[I].Loc_House = aHouse then
@@ -678,6 +697,8 @@ procedure TKMDeliveries.RemDemand(aUnit: TKMUnit);
 var
   I: Integer;
 begin
+  if gGame.IsMapEditor then
+    Exit;
   Assert(aUnit <> nil);
   for I := 1 to fDemandCount do
   if fDemand[I].Loc_Unit = aUnit then
@@ -718,6 +739,10 @@ var
   I: Integer;
 begin
   Result := 0;
+
+  if gGame.IsMapEditor then
+    Exit;
+
   if aCount = 0 then Exit;
   Assert(aHouse <> nil);
   for I := 1 to fDemandCount do
@@ -759,6 +784,8 @@ procedure TKMDeliveries.AddDemand(aHouse: TKMHouse; aUnit: TKMUnit; aResource: T
 var
   I,K,J: Integer;
 begin
+  if gGame.IsMapEditor then
+    Exit;
   Assert(aResource <> wtNone, 'Demanding rtNone');
   if aCount <= 0 then Exit;
 
@@ -822,12 +849,18 @@ begin
                    and (aIgnoreOffer or (fOffer[iO].BeingPerformed < fOffer[iO].Count)));
 
   //If Demand and Offer aren't deleted
-  Result := Result and (not fDemand[iD].IsDeleted) and (aIgnoreOffer or not fOffer[iO].IsDeleted);
+  Result := Result and not fDemand[iD].IsDeleted and (aIgnoreOffer or not fOffer[iO].IsDeleted);
+
+  //If Offer should not be abandoned
+  Result := Result and not fOffer[iO].Loc_House.ShouldAbandonDeliveryFrom(fOffer[iO].Ware)
+                       //Check store to store evacuation
+                       and not fOffer[iO].Loc_House.ShouldAbandonDeliveryFromTo(fDemand[iD].Loc_House, fOffer[iO].Ware);
+
 
   //If Demand house should abandon delivery
   Result := Result and ((fDemand[iD].Loc_House = nil)
                          or not fDemand[iD].Loc_House.IsComplete
-                         or not fDemand[iD].Loc_House.ShouldAbandonDelivery(fOffer[iO].Ware));
+                         or not fDemand[iD].Loc_House.ShouldAbandonDeliveryTo(fOffer[iO].Ware));
 
   //Warfare has a preference to be delivered to Barracks
   if Result
@@ -852,19 +885,29 @@ begin
     end;
   end;
 
-  //If Demand and Offer are different HouseTypes, means forbid Store<->Store deliveries except the case where 2nd store is being built and requires building materials
+  //Do not allow delivery from 1 house to same house (f.e. store)
+  Result := Result and ((fDemand[iD].Loc_House = nil)
+                       or (fDemand[iD].Loc_House.UID <> fOffer[iO].Loc_House.UID));
+
+  //If Demand and Offer are different HouseTypes, means forbid Store<->Store deliveries
+  //except the case where 2nd store is being built and requires building materials
+  //or when we use TakeOut delivery (evacuation) mode for Offer Store
   Result := Result and ((fDemand[iD].Loc_House = nil)
                         or not ((fOffer[iO].Loc_House.HouseType = htStore) and (fDemand[iD].Loc_House.HouseType = htStore))
-                        or (fOffer[iO].Loc_House.IsComplete <> fDemand[iD].Loc_House.IsComplete));
+                        or not fDemand[iD].Loc_House.IsComplete
+                        or ((fOffer[iO].Loc_House.DeliveryMode = dmTakeOut) and not TKMHouseStore(fOffer[iO].Loc_House).NotAllowTakeOutFlag[fOffer[iO].Ware]));
 
-  //Do not allow transfers between Barracks (for now)
+  //Allow transfers between Barracks only when offer barracks have DeliveryMode = dmTakeOut
   Result := Result and ((fDemand[iD].Loc_House = nil)
-                        or not ((fOffer[iO].Loc_House.HouseType = htBarracks) and (fDemand[iD].Loc_House.HouseType = htBarracks)));
+                        or (fDemand[iD].Loc_House.HouseType <> htBarracks)
+                        or (fOffer[iO].Loc_House.HouseType <> htBarracks)
+                        or (fOffer[iO].Loc_House.DeliveryMode = dmTakeOut));
 
-  //Do not permit Barracks -> Store deliveries
-  Result := Result and ((fDemand[iD].Loc_House = nil) or
-                        (fDemand[iD].Loc_House.HouseType <> htStore) or
-                        (fOffer[iO].Loc_House.HouseType <> htBarracks));
+  //Permit Barracks -> Store deliveries only if barracks delivery mode is TakeOut
+  Result := Result and ((fDemand[iD].Loc_House = nil)
+                        or (fDemand[iD].Loc_House.HouseType <> htStore)
+                        or (fOffer[iO].Loc_House.HouseType <> htBarracks)
+                        or (fOffer[iO].Loc_House.DeliveryMode = dmTakeOut));
 
   Result := Result and (
             ( //House-House delivery should be performed only if there's a connecting road
@@ -1185,10 +1228,14 @@ begin
     aBidValue := aBidValue + 10000;
 
   //When delivering food to warriors, add a random amount to bid to ensure that a variety of food is taken. Also prefer food which is more abundant.
-  if (fDemand[iD].Loc_Unit <> nil)
-    and (fDemand[iD].Ware = wtFood) then
+  if (fDemand[iD].Loc_Unit <> nil) and (fDemand[iD].Ware = wtFood) then
+  begin
     //The more resource there is, the smaller Random can be. >100 we no longer care, it's just random 5.
-    aBidValue := aBidValue + KaMRandom(5+(100 div fOffer[iO].Count), 'TKMDeliveries.TryCalculateBidBasic 4');
+    if fOffer[iO].Count = 0 then
+      aBidValue := aBidValue + KaMRandom(5 + 150, 'TKMDeliveries.TryCalculateBidBasic 4')
+    else
+      aBidValue := aBidValue + KaMRandom(5 + (100 div fOffer[iO].Count), 'TKMDeliveries.TryCalculateBidBasic 5');
+  end;
 end;
 
 
@@ -1269,7 +1316,8 @@ begin
 end;
 
 // Find best Demand for the given delivery. Could return same or nothing
-procedure TKMDeliveries.DeliveryFindBestDemand(aSerf: TKMUnitSerf; aDeliveryId: Integer; aResource: TKMWareType; out aToHouse: TKMHouse; out aToUnit: TKMUnit; out aForceDelivery: Boolean);
+procedure TKMDeliveries.DeliveryFindBestDemand(aSerf: TKMUnitSerf; aDeliveryId: Integer; aResource: TKMWareType;
+                                               out aToHouse: TKMHouse; out aToUnit: TKMUnit; out aForceDelivery: Boolean);
 
   function ValidBestDemand(iD: Integer): Boolean;
   begin
@@ -1283,7 +1331,7 @@ procedure TKMDeliveries.DeliveryFindBestDemand(aSerf: TKMUnitSerf; aDeliveryId: 
     //If Demand house should abandon delivery
     Result := Result and ((fDemand[iD].Loc_House = nil)
                           or not fDemand[iD].Loc_House.IsComplete
-                          or not fDemand[iD].Loc_House.ShouldAbandonDelivery(fDemand[iD].Ware));
+                          or not fDemand[iD].Loc_House.ShouldAbandonDeliveryTo(aResource));
 
     //If Demand aren't reserved already
     Result := Result and ((fDemand[iD].DemandType = dtAlways) or (fDemand[iD].BeingPerformed = 0));

@@ -247,7 +247,7 @@ const
     BuildIcon:        321;
     TabletSpriteId:   271;
     Input:            (wtLeather,    wtWood,       wtNone,       wtNone);
-    Output:           (wtArmor,      wtShield,     wtNone,       wtNone);
+    Output:           (wtShield,     wtArmor,      wtNone,       wtNone);
     UnlockedByHouse:  htTannery;
     SnowSpriteId:     2067;
     ),

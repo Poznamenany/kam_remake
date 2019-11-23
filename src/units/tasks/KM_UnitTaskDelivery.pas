@@ -191,14 +191,17 @@ begin
 
   //After step 2 we don't care if From is destroyed or doesn't have the ware
   if fPhase <= 2 then
-    Result := Result or fFrom.IsDestroyed or (not fFrom.ResOutputAvailable(fWareType, 1) {and (fPhase < 5)});
+    Result := Result
+                or fFrom.IsDestroyed
+                or fFrom.ShouldAbandonDeliveryFrom(fWareType)
+                or fFrom.ShouldAbandonDeliveryFromTo(fToHouse, fWareType);
 
   //do not abandon the delivery if target is destroyed/dead, we will find new target later
   case fDeliverKind of
     dkToHouse:         if fPhase <= 8 then
                         begin
                           Result := Result or fToHouse.IsDestroyed
-                                   or (not fForceDelivery and fToHouse.ShouldAbandonDelivery(fWareType));
+                                   or (not fForceDelivery and fToHouse.ShouldAbandonDeliveryTo(fWareType));
                         end;
     dkToConstruction:  if fPhase <= 7 then
                           Result := Result or fToHouse.IsDestroyed;
@@ -370,8 +373,15 @@ function TKMTaskDeliver.Execute: TKMTaskResult;
     //Check if we already reach destination, no need to check anymore.
     //Also there is possibility when connected path (not diagonal) to house was cut and we have only diagonal path
     //then its possible, that fPointBelowToHouse Connect Area will have only 1 tile, that means its WalkConnect will be 0
+<<<<<<< HEAD
     //then no need actually need to go to raod
     if fUnit.CurrPosition = fToHouse.PointBelowEntrance then
+=======
+    //then no need actually need to go to road
+    if (fUnit.CurrPosition = fToHouse.PointBelowEntrance)
+      //If we also just left From house then no need to go anywhere...
+      or (fUnit.CurrPosition = fFrom.PointBelowEntrance) then
+>>>>>>> master
       Exit(False);
 
     RC := gTerrain.GetRoadConnectID(fUnit.CurrPosition);
@@ -388,9 +398,16 @@ begin
   Result := trTaskContinues;
 
   //Check if need walk back to road
+<<<<<<< HEAD
   //Used only if we walk from house to other house or construction site
   NeedWalkBackToRoad := (((fDeliverKind = dkToHouse) and ((fPhase - 1) = 5))
                           or (((fPhase - 1) in [5,6]) and (fDeliverKind = dkToConstruction)))
+=======
+  //that could happen, when serf was pushd out of road or if he left offer house not onto road
+  //Used only if we walk from house to other house or construction site
+  NeedWalkBackToRoad := (((fDeliverKind = dkToHouse) and ((fPhase - 1) in [4,5])) //Phase 4 could be if we just left Offer House
+                          or (((fPhase - 1) in [4,5,6]) and (fDeliverKind = dkToConstruction))) //Phase 4 could be if we just left Offer House
+>>>>>>> master
                         and NeedGoToRoad();
 
   if not NeedWalkBackToRoad then
@@ -405,19 +422,21 @@ begin
   if NeedWalkBackToRoad then
   begin
     case fPhase2 of
+  //No need to think if need go back to road
+  //No need 2 phases here, but let's keep old code for a while
+//      0:  begin
+//            fUnit.SetActionStay(1, uaWalk);
+////            fUnit.Thought := thQuest;
+//          end;
       0:  begin
-            fUnit.SetActionStay(4, uaWalk);
-            fUnit.Thought := thQuest;
-          end;
-      1:  begin
             fUnit.SetActionWalkToRoad(uaWalk, 0, tpWalkRoad,
                               [gTerrain.GetRoadConnectID(fPointBelowToHouse), gTerrain.GetRoadConnectID(fPointBelowFromHouse)]);
             fUnit.Thought := thNone;
-            fPhase := 5;
+            fPhase := 5; //Start walk to Demand house again
+            fPhase2 := 10; //Some magic (yes) meaningless number...
+            Exit;
           end;
     end;
-    Inc(fPhase2);
-    Exit;
   end;
 
   with TKMUnitSerf(fUnit) do
@@ -429,12 +448,14 @@ begin
           SetActionGoIn(uaWalk, gdGoInside, fFrom);
         end;
     2:  begin
+          //Serf is inside house now.
           //Barracks can consume the resource (by equipping) before we arrive
           //All houses can have resources taken away by script at any moment
-          if not fFrom.ResOutputAvailable(fWareType, 1) then
+          if fFrom.ShouldAbandonDeliveryFrom(fWareType)
+             or fFrom.ShouldAbandonDeliveryFromTo(fToHouse, fWareType) then //For store evacuation
           begin
-            SetActionGoIn(uaWalk, gdGoOutside, fFrom); //Step back out
-            fPhase := 99; //Exit next run
+            SetActionLockedStay(5, uaWalk); //Wait a moment inside
+            fPhase := 120; //Will get out of Barracks onthat Phase
             Exit;
           end;
           SetActionLockedStay(5,uaWalk); //Wait a moment inside
@@ -458,6 +479,15 @@ begin
 
   if fPhase = 5 then
     TKMUnitSerf(fUnit).Thought := thNone; // Clear possible '?' thought after 4th phase
+
+  //Get out barracks (special case after wait phase inside house, if resource is not available anymore)
+  with TKMUnitSerf(fUnit) do
+  if fPhase = 120 then
+  begin
+    SetActionGoIn(uaWalk, gdGoOutside, fFrom); //Step back out
+    fPhase := 99; //Exit next run
+    Exit;
+  end;
 
   //Deliver into complete house
   if (fDeliverKind = dkToHouse) then
@@ -624,8 +654,11 @@ end;
 
 
 procedure TKMTaskDeliver.Paint;
+<<<<<<< HEAD
 var
   FromP, ToP: TKMPoint;
+=======
+>>>>>>> master
 begin
   if SHOW_UNIT_ROUTES
     and (gMySpectator.Selected = fUnit) then

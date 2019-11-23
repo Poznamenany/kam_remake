@@ -59,7 +59,7 @@ type
 
 implementation
 uses
-  KM_AIFields, KM_AIInfluences, KM_NavMesh, KM_Hand, KM_HandsCollection;
+  KM_AIFields, KM_AIInfluences, KM_NavMesh, KM_Hand, KM_HandsCollection, KM_ResHouses, KM_ArmyAttack;
 
 
 { TNavMeshInfluenceSearch }
@@ -101,8 +101,20 @@ end;
 
 
 function TNavMeshInfluenceSearch.FindClosestEnemies(const aOwner: TKMHandID; aCenterPoints: TKMPointArray; var aEnemiesStats: TKMEnemyStatisticsArray; aHouseInfluence: Boolean = True): Boolean;
+  // Check if player is active in the meaning of threat for new AI
+  function PlayerActive(aPL: TKMHandID): Boolean;
+  var
+    HT: TKMHouseType;
+  begin
+    if not gHands[aPL].Enabled OR gHands[aPL].AI.HasLost then
+      Exit(False);
+    for HT in TARGET_HOUSES do
+      if (gHands[aPL].Stats.GetHouseQty(HT) > 0) then
+        Exit(True);
+    Result := (gHands[aPL].Stats.GetArmyCount > 0);
+  end;
 const
-  MAX_ENEMIES_AT_ONCE = 3;
+  MAX_ENEMIES_AT_ONCE = 11;
 var
   PL: TKMHandID;
   I, Cnt: Integer;
@@ -122,7 +134,7 @@ begin
   SetLength(fEnemies, gHands.Count - 1);
   Cnt := 0;
   for PL := 0 to gHands.Count - 1 do
-    if gHands[PL].Enabled AND (gHands[aOwner].Alliances[PL] = atEnemy) then
+    if (gHands[aOwner].Alliances[PL] = atEnemy) AND PlayerActive(PL) then
     begin
       fEnemies[Cnt] := PL;
       Cnt := Cnt + 1;

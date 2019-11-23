@@ -40,6 +40,7 @@ type
     property CityManagement: TKMCityManagement read fCityManagement;
     property ArmyManagement: TKMArmyManagement read fArmyManagement;
 
+    procedure ResetWonOrLost;
     procedure Defeat(aShowDefeatMessage: Boolean = True); //Defeat the player, this is not reversible
     procedure Victory; //Set this player as victorious, this is not reversible
     procedure AddDefaultGoals(aBuildings: Boolean);
@@ -58,12 +59,14 @@ type
     procedure SyncLoad();
     procedure UpdateState(aTick: Cardinal);
     procedure AfterMissionInit();
+
+    function ObjToString: String;
   end;
 
 
 implementation
 uses
-  SysUtils,
+  SysUtils, TypInfo,
   KM_GameTypes, KM_GameApp, KM_Game, KM_Hand, KM_HandsCollection, KM_HandStats, KM_UnitGroup,
   KM_ResHouses, KM_ResSound, KM_ScriptingEvents, KM_Alerts, KM_Points,
   KM_AIFields;
@@ -97,6 +100,13 @@ begin
   fArmyManagement.Free;
 
   inherited;
+end;
+
+
+procedure TKMHandAI.ResetWonOrLost;
+begin
+  fWonOrLost := wolNone;
+
 end;
 
 
@@ -474,6 +484,12 @@ begin
                     end;
                   end;
   end;
+end;
+
+
+function TKMHandAI.ObjToString: String;
+begin
+  Result := 'WOL = ' + GetEnumName(TypeInfo(TWonOrLost), Integer(fWonOrLost));
 end;
 
 

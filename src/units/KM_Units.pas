@@ -25,7 +25,6 @@ type
   protected
     fType: TKMUnitActionType;
     fUnit: TKMUnit;
-    fOnActionDone: TAnonBooleanFn;
   public
     Locked: Boolean; //Means that unit can't take part in interaction, must stay on its tile
     StepDone: Boolean; //True when single action element is done (unit walked to new tile, single attack loop done)
@@ -33,7 +32,6 @@ type
     constructor Load(LoadStream: TKMemoryStream); virtual;
     procedure SyncLoad; virtual;
 
-    property OnActionDone: TAnonBooleanFn read fOnActionDone write fOnActionDone;
     function CanBeInterrupted(aForced: Boolean = True): Boolean; virtual;
     function ActName: TKMUnitActionName; virtual; abstract;
     property ActionType: TKMUnitActionType read fType;
@@ -2170,17 +2168,27 @@ end;
 
 function TKMUnit.ObjToString(aSeparator: String = '|'): String;
 var
-  HomeStr: String;
+  HomeStr, InHouseStr: String;
 begin
   HomeStr := 'nil';
+  InHouseStr := 'nil';
 
   if fHome <> nil then
     HomeStr := Format('[UID = %d, Type = %s]', [fHome.UID, GetEnumName(TypeInfo(TKMHouseType), Integer(fHome.HouseType))]);
+<<<<<<< HEAD
+=======
+  if fInHouse <> nil then
+    InHouseStr := Format('[UID = %d, Type = %s]', [fInHouse.UID, GetEnumName(TypeInfo(TKMHouseType), Integer(fInHouse.HouseType))]);
+>>>>>>> master
 
   Result := ObjToStringShort(aSeparator) +
             Format('%sPositionF = %s%sPrevPosition = %s%sNextPosition = %s%s' +
                    'Thought = %s%sHitPoints = %d%sHitPointCounter = %d%sCondition = %d%s' +
+<<<<<<< HEAD
                    'Owner = %d%sHome = %s%sVisible = %s%sIsDead = %s',
+=======
+                   'Owner = %d%sHome = %s%sInHouse = %s%sVisible = %s%sIsDead = %s',
+>>>>>>> master
                    [aSeparator,
                     TypeToString(fPositionF), aSeparator,
                     TypeToString(fPrevPosition), aSeparator,
@@ -2191,6 +2199,10 @@ begin
                     fCondition, aSeparator,
                     fOwner, aSeparator,
                     HomeStr, aSeparator,
+<<<<<<< HEAD
+=======
+                    InHouseStr, aSeparator,
+>>>>>>> master
                     BoolToStr(fVisible, True), aSeparator,
                     BoolToStr(fIsDead, True)]);
 end;
@@ -2348,25 +2360,9 @@ begin
   SetCurrPosition(KMPointRound(fPositionF)); //will update FOW
 
   case fAction.Execute of
-    arActContinues: begin
-                      SetCurrPosition(KMPointRound(fPositionF));
-                      Exit;
-                    end; //will update FOW
-    arActAborted:   begin
-                      FreeAndNil(fAction);
-                      FreeAndNil(fTask);
-                    end;
-    arActDone:      begin
-                      if Assigned(fAction.OnActionDone) then
-                      begin
-                        //Free action depends of fOnActionDone
-                        //If we created new action, then no need to free it
-                        //If we created new task then we must free it
-                        if not fAction.fOnActionDone() then
-                          FreeAndNil(fAction);
-                      end else
-                        FreeAndNil(fAction);
-                    end;
+    arActContinues: begin SetCurrPosition(KMPointRound(fPositionF)); Exit; end; //will update FOW
+    arActAborted:   begin FreeAndNil(fAction); FreeAndNil(fTask); end;
+    arActDone:      FreeAndNil(fAction);
   end;
   SetCurrPosition(KMPointRound(fPositionF)); //will update FOW
 

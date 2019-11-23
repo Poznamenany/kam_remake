@@ -48,6 +48,7 @@ xcopy ..\libzplay.dll "%kam_folder%"\libzplay.dll* /y /r /i
 xcopy ..\ogg.dll "%kam_folder%"\ogg.dll* /y /r /i
 xcopy ..\vorbis.dll "%kam_folder%"\vorbis.dll* /y /r /i
 xcopy ..\vorbisfile.dll "%kam_folder%"\vorbisfile.dll* /y /r /i
+xcopy "%KMRPrevVersionDir%"\oalinst.exe "%kam_folder%"\oalinst.exe* /y /r /i
 
 @REM copy ScriptingEditor
 if %IncludeScriptingEditor%==True (

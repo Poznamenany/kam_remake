@@ -1651,6 +1651,9 @@ begin
     Members[I].OrderWalk(P.Loc, P.Exact, aForced);
     Members[I].FaceDir := NewDir;
   end;
+
+  //Script may have additional event processors
+  gScriptEvents.ProcGroupOrderMove(Self, aLoc.X, aLoc.Y);
 end;
 
 

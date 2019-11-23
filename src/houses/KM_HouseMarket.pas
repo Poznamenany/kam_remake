@@ -25,6 +25,7 @@ type
   protected
     function GetResOrder(aId: Byte): Integer; override;
     procedure SetResOrder(aId: Byte; aValue: Integer); override;
+    procedure CheckTakeOutDeliveryMode; override;
   public
     constructor Create(aUID: Integer; aHouseType: TKMHouseType; PosX, PosY: Integer; aOwner: TKMHandID; aBuildState: TKMHouseBuildState);
     constructor Load(LoadStream: TKMemoryStream); override;
@@ -34,6 +35,8 @@ type
     property ResTo: TKMWareType read fResTo write SetResTo;
     function RatioFrom: Byte;
     function RatioTo: Byte;
+
+    function ShouldAbandonDeliveryTo(aWareType: TKMWareType): Boolean; override;
 
     function AllowedToTrade(aRes: TKMWareType): Boolean;
     function TradeInProgress: Boolean;
@@ -52,7 +55,7 @@ type
 
 implementation
 uses
-  Math,
+  Math, SysUtils, TypInfo,
   KM_RenderPool,
   KM_Hand, KM_HandsCollection, KM_HandLogistics,
   KM_Resource, KM_ResSound,
@@ -171,7 +174,8 @@ end;
 function TKMHouseMarket.ResOutputAvailable(aRes: TKMWareType; const aCount: Word): Boolean;
 begin
   Assert(aRes in [WARE_MIN..WARE_MAX]);
-  Result := (fMarketResOut[aRes] >= aCount);
+  Result := (fMarketResOut[aRes] >= aCount)
+            or ((NewDeliveryMode = dmTakeOut) and (fMarketResIn[aRes] >= aCount));
 end;
 
 
@@ -219,9 +223,21 @@ begin
       gHands[fOwner].Deliveries.Queue.RemOffer(Self, aWare, aCount);
     end;
   end;
-  Assert(aCount <= fMarketResOut[aWare]);
 
-  dec(fMarketResOut[aWare], aCount);
+  if aCount <= fMarketResOut[aWare] then
+    Dec(fMarketResOut[aWare], aCount)
+  else if (DeliveryMode = dmTakeOut) and (aCount <= fMarketResIn[aWare]) then
+    Dec(fMarketResIn[aWare], aCount)
+  else
+    raise Exception.Create(Format('No ware: [%s] count = %d to take from market UID = %d',
+                                  [GetEnumName(TypeInfo(TKMWareType), Integer(aWare)), aCount, UID]));
+
+end;
+
+
+function TKMHouseMarket.ShouldAbandonDeliveryTo(aWareType: TKMWareType): Boolean;
+begin
+  Result := inherited or (fTradeAmount = 0); //Stop delivery to market when player set trade amount to 0
 end;
 
 
@@ -336,6 +352,29 @@ begin
       OrdersRemoved := gHands[fOwner].Deliveries.Queue.TryRemoveDemand(Self, fResFrom, -ResRequired);
       Dec(fMarketDeliveryCount[fResFrom], OrdersRemoved);
     end;
+end;
+
+
+//Check and proceed if we Set or UnSet dmTakeOut delivery mode
+procedure TKMHouseMarket.CheckTakeOutDeliveryMode;
+var
+  WT: TKMWareType;
+begin
+  if DeliveryMode = dmTakeOut then
+    for WT := WARE_MIN to WARE_MAX do
+    begin
+      if fMarketResIn[WT] > 0 then
+        gHands[fOwner].Deliveries.Queue.RemOffer(Self, WT, fMarketResIn[WT]);
+    end;
+
+  if NewDeliveryMode = dmTakeOut then
+  begin
+    for WT := WARE_MIN to WARE_MAX do
+    begin
+      if fMarketResIn[WT] > 0 then
+        gHands[fOwner].Deliveries.Queue.AddOffer(Self, WT, fMarketResIn[WT]);
+    end;
+  end;
 end;
 
 

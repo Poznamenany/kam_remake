@@ -241,9 +241,11 @@ begin
   fUnit.NextPosition := fStreet;
   gTerrain.UnitAdd(fUnit.NextPosition, fUnit); //Unit was not occupying tile while inside
 
-  if (fUnit.Home <> nil)
-  and (fUnit.Home.HouseType = htBarracks) //Unit home is barracks
-  and (fUnit.Home = fHouse) then //And is the house we are walking from
+  //Use InHouse instead of Home, since Home could be cleared via ProceedHouseClosedForWorker (f.e. when wGoingForEating = True)
+  if (fUnit.UnitType = utRecruit) //Recruit
+    and(fUnit.InHouse <> nil) //In some house
+    and (fUnit.InHouse.HouseType = htBarracks) //Recruit is in barracks
+    and (fUnit.InHouse = fHouse) then //And is the house we are walking from
     TKMHouseBarracks(fHouse).RecruitsRemove(fUnit);
 
   //We are walking straight

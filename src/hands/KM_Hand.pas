@@ -111,6 +111,7 @@ type
     procedure SetOwnerNikname(const aName: AnsiString); //MP owner nikname (empty in SP)
     property OwnerNikname: AnsiString read fOwnerNikname;
     property OwnerNiknameU: UnicodeString read GetOwnerNiknameU;
+    function CalcOwnerName: UnicodeString; //Universal owner name
     function OwnerName(aNumberedAIs: Boolean = True): UnicodeString; //Universal owner name
     function GetOwnerName: UnicodeString;
     function GetOwnerNameColored: AnsiString;
@@ -196,6 +197,7 @@ type
     procedure IncAnimStep;
     procedure UpdateState(aTick: Cardinal); override;
     procedure Paint(const aRect: TKMRect); override;
+    function ObjToString: String;
   end;
 
 
@@ -209,7 +211,7 @@ type
 
 implementation
 uses
-  Classes, SysUtils, KromUtils, Math,
+  Classes, SysUtils, KromUtils, Math, TypInfo,
   KM_GameApp, KM_Game, KM_Terrain, KM_HouseBarracks, KM_HouseTownHall,
   KM_HandsCollection, KM_Sound, KM_AIFields,
   KM_Resource, KM_ResSound, KM_ResTexts, KM_ResMapElements, KM_ScriptingEvents,
@@ -1404,6 +1406,43 @@ begin
 end;
 
 
+function TKMHand.CalcOwnerName: UnicodeString;
+var
+  NumberedAIs: Boolean;
+begin
+  NumberedAIs := not (gGame.GameMode in [gmSingle, gmCampaign, gmReplaySingle]);
+  //Default names
+  if HandType = hndHuman then
+    Result := gResTexts[TX_PLAYER_YOU]
+  else
+    if AI.Setup.NewAI then
+    begin
+      if NumberedAIs then
+        Result := Format(gResTexts[TX_ADVANCED_AI_PLAYER_SHORT_X], [fID + 1])
+      else
+        Result := gResTexts[TX_AI_PLAYER_ADVANCED_SHORT];
+    end else begin
+      if NumberedAIs then
+        Result := Format(gResTexts[TX_CLASSIC_AI_PLAYER_SHORT_X], [fID + 1])
+      else
+        Result := gResTexts[TX_AI_PLAYER_CLASSIC_SHORT];
+    end;
+
+  //Try to take player name from mission text if we are in SP
+  //Do not use names in MP to avoid confusion of AI players with real player niknames
+  if gGame.GameMode in [gmSingle, gmCampaign, gmMapEd, gmReplaySingle] then
+    if gGame.TextMission.HasText(HANDS_NAMES_OFFSET + fID) then
+      if HandType = hndHuman then
+        Result := gResTexts[TX_PLAYER_YOU] + ' (' + gGame.TextMission[HANDS_NAMES_OFFSET + fID] + ')'
+      else
+        Result := gGame.TextMission[HANDS_NAMES_OFFSET + fID];
+
+  //If this location is controlled by an MP player - show his nik
+  if (fOwnerNikname <> '') and (HandType = hndHuman) then
+    Result := UnicodeString(fOwnerNikname);
+end;
+
+
 function TKMHand.OwnerName(aNumberedAIs: Boolean = True): UnicodeString;
 begin
   //Default names
@@ -1424,7 +1463,7 @@ begin
     end;
 
   //Try to take player name from mission text if we are in SP
-  //Do not use names in MP ot avoid confusion of AI players with real player niknames
+  //Do not use names in MP to avoid confusion of AI players with real player niknames
   if gGame.GameMode in [gmSingle, gmCampaign, gmMapEd, gmReplaySingle] then
     if gGame.TextMission.HasText(HANDS_NAMES_OFFSET + fID) then
       if HandType = hndHuman then
@@ -1814,6 +1853,17 @@ begin
       fAI.ArmyManagement.Defence.Paint();
     end;
   end;
+end;
+
+
+function TKMHand.ObjToString: String;
+begin
+  Result := Format('Enabled = %5s ID = %d AI: [%s] Owner = %s HandType = %s',
+                   [BoolToStr(Enabled, True),
+                    fID,
+                    AI.ObjToString,
+                    OwnerName,
+                    GetEnumName(TypeInfo(TKMHandType), Integer(HandType))]);
 end;
 
 

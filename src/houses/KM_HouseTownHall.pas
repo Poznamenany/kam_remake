@@ -34,7 +34,7 @@ type
     property GoldCnt: Word read fGoldCnt write SetGoldCnt;
     property GoldMaxCnt: Word read fGoldMaxCnt write SetGoldMaxCnt;
 
-    function ShouldAbandonDelivery(aWareType: TKMWareType): Boolean; override;
+    function ShouldAbandonDeliveryTo(aWareType: TKMWareType): Boolean; override;
 
     function Equip(aUnitType: TKMUnitType; aCount: Integer): Integer;
     function CanEquip(aUnitType: TKMUnitType): Boolean;
@@ -232,7 +232,7 @@ begin
 end;
 
 
-function TKMHouseTownHall.ShouldAbandonDelivery(aWareType: TKMWareType): Boolean;
+function TKMHouseTownHall.ShouldAbandonDeliveryTo(aWareType: TKMWareType): Boolean;
 begin
   Result := inherited or (aWareType <> wtGold);
   if not Result then

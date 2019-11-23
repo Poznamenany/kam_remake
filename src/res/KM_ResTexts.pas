@@ -43,6 +43,7 @@ type
     fPref: array [0..2] of Integer;
 
     fTexts: array of TUnicodeStringArray;
+    fForceDefaultLocale: Boolean; //Force to use default Locale (Eng)
     function GetTexts(aIndex: Word): UnicodeString;
     function GetDefaultTexts(aIndex: Word): UnicodeString;
     procedure InitLocaleIds;
@@ -55,6 +56,7 @@ type
     function HasText(aIndex: Word): Boolean;
     property Texts[aIndex: Word]: UnicodeString read GetTexts; default;
     property DefaultTexts[aIndex: Word]: UnicodeString read GetDefaultTexts;
+    property ForceDefaultLocale: Boolean read fForceDefaultLocale write fForceDefaultLocale;
     procedure Save(aStream: TKMemoryStream);
     procedure Load(aStream: TKMemoryStream);
   end;
@@ -183,6 +185,7 @@ begin
   inherited Create;
 
   InitLocaleIds;
+  fForceDefaultLocale := False;
 end;
 
 
@@ -207,16 +210,32 @@ end;
 // Order of preference: Locale > Fallback > Default(Eng)
 // Some locales may have no strings at all, just skip them
 function TKMTextLibraryMulti.GetTexts(aIndex: Word): UnicodeString;
+var
+  Found: Boolean;
 begin
+  Found := False;
+
   if (fPref[0] <> -1) and (aIndex < Length(fTexts[fPref[0]])) and (fTexts[fPref[0], aIndex] <> '') then
-    Result := fTexts[fPref[0], aIndex]
+  begin
+    Result := fTexts[fPref[0], aIndex];
+    Found := True;
+  end
   else
   if (fPref[1] <> -1) and (aIndex < Length(fTexts[fPref[1]])) and (fTexts[fPref[1], aIndex] <> '') then
-    Result := fTexts[fPref[1], aIndex]
-  else
-  if (fPref[2] <> -1) and (aIndex < Length(fTexts[fPref[2]])) and (fTexts[fPref[2], aIndex] <> '') then
-    Result := fTexts[fPref[2], aIndex]
-  else
+  begin
+    Result := fTexts[fPref[1], aIndex];
+    Found := True;
+  end;
+
+  if (not Found or fForceDefaultLocale) then
+  begin
+    if (fPref[2] <> -1) and (aIndex < Length(fTexts[fPref[2]])) and (fTexts[fPref[2], aIndex] <> '') then
+    begin
+      Result := fTexts[fPref[2], aIndex];
+      Found := True;
+    end;
+  end;
+  if not Found then
     Result := '~~~String ' + IntToStr(aIndex) + ' out of range!~~~';
 end;
 

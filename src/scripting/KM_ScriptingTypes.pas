@@ -16,6 +16,7 @@ type
     evtGroupHungry,
     evtGroupOrderAttackHouse,
     evtGroupOrderAttackUnit,
+    evtGroupOrderMove,
     evtGroupOrderLink,
     evtGroupOrderSplit,
     evtMarketTrade,

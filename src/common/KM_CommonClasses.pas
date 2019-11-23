@@ -46,6 +46,7 @@ type
     function Write(const Value:TKMRangeSingle): Longint; reintroduce; overload;
     function Write(const Value:TKMRect  ): Longint; reintroduce; overload;
     function Write(const Value:Single   ): Longint; reintroduce; overload;
+    function Write(const Value:Extended ): Longint; reintroduce; overload;
     function Write(const Value:Integer  ): Longint; reintroduce; overload;
     function Write(const Value:Cardinal ): Longint; reintroduce; overload;
     function Write(const Value:Byte     ): Longint; reintroduce; overload;
@@ -64,6 +65,7 @@ type
     function Read(out Value:TKMRangeSingle): Longint; reintroduce; overload;
     function Read(out Value:TKMRect     ): Longint; reintroduce; overload;
     function Read(out Value:Single      ): Longint; reintroduce; overload;
+    function Read(out Value:Extended    ): Longint; reintroduce; overload;
     function Read(out Value:Integer     ): Longint; reintroduce; overload;
     function Read(out Value:Cardinal    ): Longint; reintroduce; overload;
     function Read(out Value:Byte        ): Longint; reintroduce; overload;
@@ -361,6 +363,9 @@ begin Result := inherited Write(Value, SizeOf(Value)); end;
 function TKMemoryStream.Write(const Value:single): Longint;
 begin Result := inherited Write(Value, SizeOf(Value)); end;
 
+function TKMemoryStream.Write(const Value:Extended): Longint;
+begin Result := inherited Write(Value, SizeOf(Value)); end;
+
 function TKMemoryStream.Write(const Value:integer): Longint;
 begin Result := inherited Write(Value, SizeOf(Value)); end;
 
@@ -424,6 +429,9 @@ function TKMemoryStream.Read(out Value:TKMRect): Longint;
 begin Result := inherited Read(Value, SizeOf(Value)); end;
 
 function TKMemoryStream.Read(out Value:single): Longint;
+begin Result := inherited Read(Value, SizeOf(Value)); end;
+
+function TKMemoryStream.Read(out Value:extended): Longint;
 begin Result := inherited Read(Value, SizeOf(Value)); end;
 
 function TKMemoryStream.Read(out Value:integer): Longint;

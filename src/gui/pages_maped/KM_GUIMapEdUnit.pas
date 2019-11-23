@@ -13,6 +13,7 @@ type
     fGroup: TKMUnitGroup;
 
     procedure SetUnitsPerRaw(aValue: Integer);
+    procedure SetPositionUnitConditions(aValue: Integer);
 
     procedure Unit_ArmyChange1(Sender: TObject);
     procedure Unit_ArmyChangeShift(Sender: TObject; Shift: TShiftState);
@@ -60,8 +61,8 @@ constructor TKMMapEdUnit.Create(aParent: TKMPanel);
 begin
   inherited Create;
 
-  Panel_Unit := TKMPanel.Create(aParent, 0, 45, TB_WIDTH, 400);
-  Label_UnitName        := TKMLabel.Create(Panel_Unit,0,16,TB_WIDTH,0,'',fntOutline,taCenter);
+  Panel_Unit := TKMPanel.Create(aParent, TB_PAD, 45, TB_MAP_ED_WIDTH - TB_PAD, 400);
+  Label_UnitName        := TKMLabel.Create(Panel_Unit,0,16,Panel_Unit.Width,0,'',fntOutline,taCenter);
   Image_UnitPic         := TKMImage.Create(Panel_Unit,0,38,54,100,521);
   Label_UnitCondition   := TKMLabel.Create(Panel_Unit,65,40,116,0,gResTexts[TX_UNIT_CONDITION],fntGrey,taCenter);
 
@@ -76,10 +77,10 @@ begin
   Button_ConditionInc.OnClickHold  := UnitConditionsClickHold;
   Button_ConditionDefault.OnClickShift  := UnitConditionsChange;
 
-  Label_UnitDescription := TKMLabel.Create(Panel_Unit,0,152,TB_WIDTH,200,'',fntGrey,taLeft); //Taken from LIB resource
+  Label_UnitDescription := TKMLabel.Create(Panel_Unit,0,152,Panel_Unit.Width,200,'',fntGrey,taLeft); //Taken from LIB resource
   Label_UnitDescription.AutoWrap := True;
 
-  Panel_Army := TKMPanel.Create(Panel_Unit, 0, 160, TB_WIDTH, 400);
+  Panel_Army := TKMPanel.Create(Panel_Unit, 0, 160, Panel_Unit.Width, 400);
   Button_Army_RotCCW  := TKMButton.Create(Panel_Army,       0,  0, 56, 40, 23, rxGui, bsGame);
   Button_Army_RotCW   := TKMButton.Create(Panel_Army,     124,  0, 56, 40, 24, rxGui, bsGame);
   Button_Army_ForUp   := TKMButton.Create(Panel_Army,       0, 46, 56, 40, 33, rxGui, bsGame);
@@ -107,8 +108,8 @@ begin
 
   //Group order
   //todo: Orders should be placed with a cursor (but keep numeric input as well?)
-  TKMLabel.Create(Panel_Army, 0, 140, TB_WIDTH, 0, gResTexts[TX_MAPED_GROUP_ORDER], fntOutline, taLeft);
-  DropBox_ArmyOrder := TKMDropList.Create(Panel_Army, 0, 160, TB_WIDTH, 20, fntMetal, '', bsGame);
+  TKMLabel.Create(Panel_Army, 0, 140, Panel_Army.Width, 0, gResTexts[TX_MAPED_GROUP_ORDER], fntOutline, taLeft);
+  DropBox_ArmyOrder := TKMDropList.Create(Panel_Army, 0, 160, Panel_Army.Width, 20, fntMetal, '', bsGame);
   DropBox_ArmyOrder.Add(gResTexts[TX_MAPED_GROUP_ORDER_NONE]);
   DropBox_ArmyOrder.Add(gResTexts[TX_MAPED_GROUP_ORDER_WALK]);
   DropBox_ArmyOrder.Add(gResTexts[TX_MAPED_GROUP_ORDER_ATTACK]);
@@ -145,7 +146,7 @@ begin
   Label_UnitName.Caption := gRes.Units[fUnit.UnitType].GUIName;
   Image_UnitPic.TexID := gRes.Units[fUnit.UnitType].GUIScroll;
   Image_UnitPic.FlagColor := gHands[fUnit.Owner].FlagColor;
-  ConditionBar_Unit.Position := fUnit.Condition / UNIT_MAX_CONDITION;
+  SetPositionUnitConditions(fUnit.Condition);
 
   Label_UnitDescription.Caption := gRes.Units[fUnit.UnitType].Description;
 end;
@@ -169,7 +170,7 @@ begin
   Label_UnitName.Caption := gRes.Units[fGroup.UnitType].GUIName;
   Image_UnitPic.TexID := gRes.Units[fGroup.UnitType].GUIScroll;
   Image_UnitPic.FlagColor := gHands[fGroup.Owner].FlagColor;
-  ConditionBar_Unit.Position := fGroup.Condition / UNIT_MAX_CONDITION;
+  SetPositionUnitConditions(fGroup.Condition);
 
   //Warrior specific
   ImageStack_Army.SetCount(fGroup.MapEdCount, fGroup.UnitsPerRow, fGroup.UnitsPerRow div 2);
@@ -221,7 +222,7 @@ begin
       fUnit.Condition := TKMUnit.GetDefaultCondition;
     Button_ConditionDefault.Disable;
   end;
-  ConditionBar_Unit.Position := U.Condition / UNIT_MAX_CONDITION;
+  SetPositionUnitConditions(U.Condition);
 end;
 
 
@@ -236,6 +237,13 @@ end;
 procedure TKMMapEdUnit.Unit_ArmyChange1(Sender: TObject);
 begin
   Unit_ArmyChangeShift(Sender, []);
+end;
+
+
+procedure TKMMapEdUnit.SetPositionUnitConditions(aValue: Integer);
+begin
+  ConditionBar_Unit.Caption :=  IntToStr(aValue) + '/' + IntToStr(UNIT_MAX_CONDITION);
+  ConditionBar_Unit.Position := aValue / UNIT_MAX_CONDITION;
 end;
 
 
@@ -268,7 +276,7 @@ begin
       fGroup.Condition := TKMUnitGroup.GetDefaultCondition
     else
       fGroup.Condition := UNIT_MAX_CONDITION;
-    ConditionBar_Unit.Position := fGroup.Condition / UNIT_MAX_CONDITION;
+    SetPositionUnitConditions(fGroup.Condition);
   end;
 
   fGroup.MapEdOrder.Order := TKMInitialOrder(DropBox_ArmyOrder.ItemIndex);

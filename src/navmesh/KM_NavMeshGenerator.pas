@@ -99,8 +99,8 @@ uses
 
 
 const
-  MAX_NODES = 5000; // Max nodes in NavMesh array
-  MAX_POLYGONS = 6000;
+  MAX_NODES = 10000; // Max nodes in NavMesh array
+  MAX_POLYGONS = 10000;
   UNVISITED_OBSTACLE = 255;
   VISITED_OBSTACLE = UNVISITED_OBSTACLE - 1;
   NODE_IN_WALKABLE_AREA = 1;

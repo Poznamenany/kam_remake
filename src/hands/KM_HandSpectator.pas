@@ -15,6 +15,7 @@ type
     fHighlight: TObject; //Unit/House/Group that is shown highlighted to draw players attention
     fHighlightEnd: Cardinal; //Highlight has a short time to live
     fSelected: TObject;
+    fLastSelected: TObject;
     fIsSelectedMyObj: Boolean; // We can select ally's house/unit
     fLastSpecSelectedObjUID: array [0..MAX_HANDS-1] of Integer; //UIDs of last selected objects for each hand while spectating/watching replay
     fFOWIndex: TKMHandID; //Unit/House/Group selected by player and shown in UI
@@ -33,6 +34,7 @@ type
     destructor Destroy; override;
     property Highlight: TObject read fHighlight write SetHighlight;
     property Selected: TObject read fSelected write SetSelected;
+    property LastSelected: TObject read fLastSelected;
     property IsSelectedMyObj: Boolean read fIsSelectedMyObj write fIsSelectedMyObj;
     function Hand: TKMHand;
     property HandID: TKMHandID read fHandIndex write SetHandIndex;
@@ -324,6 +326,8 @@ end;
 
 procedure TKMSpectator.SetSelected(Value: TObject);
 begin
+  fLastSelected := fSelected;
+
   //We don't increase PointersCount of object because of savegames identicality over MP
   //Objects report on their destruction and set it to nil
   fSelected := Value;

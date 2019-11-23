@@ -128,7 +128,7 @@ uses
   KM_ResTexts, KM_HandsCollection, KM_RenderPool, KM_RenderAux, KM_UnitTaskAttackHouse, KM_HandLogistics,
   KM_UnitActionAbandonWalk, KM_UnitActionFight, KM_UnitActionGoInOut, KM_UnitActionWalkTo, KM_UnitActionStay,
   KM_UnitActionStormAttack, KM_Resource, KM_ResUnits, KM_Hand, KM_UnitGroup,
-  KM_ResWares, KM_Game, KM_ResHouses, KM_CommonUtils, KM_CommonTypes;
+  KM_ResWares, KM_Game, KM_ResHouses, KM_CommonUtils;
 
 
 { TKMUnitWarrior }
@@ -150,6 +150,7 @@ begin
   inherited;
   LoadStream.Read(fGroup, 4); //subst on syncload
   LoadStream.Read(fNextOrder, SizeOf(fNextOrder));
+  LoadStream.Read(fNextOrderForced);
   LoadStream.Read(fOrder, SizeOf(fOrder));
   LoadStream.Read(fOrderLoc);
   LoadStream.Read(fOrderTargetHouse, 4); //subst on syncload
@@ -181,6 +182,7 @@ begin
   else
     SaveStream.Write(Integer(0));
   SaveStream.Write(fNextOrder, SizeOf(fNextOrder));
+  SaveStream.Write(fNextOrderForced);
   SaveStream.Write(fOrder, SizeOf(fOrder));
   SaveStream.Write(fOrderLoc);
   if fOrderTargetHouse <> nil then
@@ -780,7 +782,6 @@ end;
 procedure TKMUnitWarrior.TakeNextOrder;
 var
   loc: TKMPoint;
-  attackHouseProc, stormProc: TAnonBooleanFn;
 begin
   //Make sure attack orders are still valid
   if ((fNextOrder = woAttackUnit) and (GetOrderTarget = nil))
@@ -832,16 +833,29 @@ begin
                         FightEnemy(GetOrderTarget);
                       end;
                     end;
-    woAttackHouse:  begin //Take attack house order
+    woAttackHouse:  begin
                       //No need to update order  if we are going to attack same house
-                      if (fOrder = woAttackHouse)
-                        and (Task <> nil)
-                        and (Task is TKMTaskAttackHouse)
-                        and (TKMTaskAttackHouse(Task).House = GetOrderHouseTarget) then
+                      if (fOrder <> woAttackHouse)
+                          or (Task = nil)
+                          or not (Task is TKMTaskAttackHouse)
+                          or (TKMTaskAttackHouse(Task).House <> GetOrderHouseTarget) then
                       begin
-                        fNextOrder := woNone; //Reset order, since we are not going to apply it
-                        Exit;
+                        //Abandon walk so we can take attack house
+                        if (Action is TKMUnitActionWalkTo)
+                          and not TKMUnitActionWalkTo(Action).DoingExchange then
+                          AbandonWalk;
+
+                        //Take attack house order
+                        if CanInterruptAction(fNextOrderForced) then
+                        begin
+                          FreeAndNil(fTask); //e.g. TaskAttackHouse
+                          fTask := TKMTaskAttackHouse.Create(Self, GetOrderHouseTarget);
+                          fOrder := woAttackHouse;
+                          fOrderLoc := CurrPosition; //Once the house is destroyed we will position where we are standing
+                          fNextOrder := woNone;
+                        end;
                       end;
+<<<<<<< HEAD
                       
                       attackHouseProc := function: Boolean
                       begin
@@ -862,38 +876,27 @@ begin
                       end;
                         
                       //Abandon walk so we can take attack house
-                      if (Action is TKMUnitActionWalkTo)
-                        and not TKMUnitActionWalkTo(Action).DoingExchange then
-                      begin
-                        AbandonWalk;
-                        //Immidiately create new task after abandon walk action done its job
-                        //This prevent unpleasent stay still for 1 tick
-                        fAction.OnActionDone := attackHouseProc; 
-                      end 
-                      else 
-                      if CanInterruptAction(fNextOrderForced) then
-                        attackHouseProc();
+=======
                     end;
     woStorm:        begin
-                      stormProc := function: Boolean
+                      //Abandon walk so we can take attack house or storm attack order
+>>>>>>> master
+                      if (Action is TKMUnitActionWalkTo)
+                        and not TKMUnitActionWalkTo(Action).DoingExchange then
+                        AbandonWalk;
+
+                      //Storm
+                      if CanInterruptAction(fNextOrderForced) then
                       begin
                         FreeAndNil(fTask); //e.g. TaskAttackHouse
                         SetActionStorm(fStormDelay);
                         fNextOrder := woNone;
                         fOrder := woStorm;
+<<<<<<< HEAD
                         Result := True; //No need to Free newly created action
+=======
+>>>>>>> master
                       end;
-                      
-                      //Abandon walk so we can take attack house or storm attack order
-                      if (Action is TKMUnitActionWalkTo)
-                        and not TKMUnitActionWalkTo(Action).DoingExchange then
-                      begin
-                        AbandonWalk;
-                        fAction.OnActionDone := stormProc;
-                      end
-                      else
-                      if CanInterruptAction(fNextOrderForced) then //Storm
-                        stormProc
                     end;
   end;
 end;

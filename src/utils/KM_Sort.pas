@@ -17,50 +17,49 @@ procedure Sort(var aArr; aMinIdx,aMaxIdx,aSize: Integer; aCompFunc: TKMCompFunc)
 type
   TWByteArray = array[Word] of Byte;
   PWByteArray = ^TWByteArray;
+
   procedure QuickSort(MinIdx,MaxIdx: Integer; var SwapBuf);
   var
-    li,hi,mi,ls,hs,ms: Integer;
+    lS,hS,pivotS: Integer;
     pArr: PWByteArray;
   begin
     pArr := @aArr;
-    li := MinIdx;
-    hi := MaxIdx;
-    mi := (li+hi) div 2;
-    ls := li*aSize;
-    hs := hi*aSize;
-    ms := mi*aSize;
+    lS := MinIdx;
+    hS := MaxIdx;
+    pivotS := ((hS+lS) div (2*aSize)) * aSize;
     repeat
-      while (aCompFunc( pArr[ls], pArr[ms] ) < 0) do
+      while (aCompFunc( pArr[lS], pArr[pivotS] ) < 0) do Inc(lS, aSize);
+      while (aCompFunc( pArr[hS], pArr[pivotS] ) > 0) do Dec(hS, aSize);
+      if (lS <= hS) then
       begin
-        Inc(ls, aSize);
-        Inc(li);
+        if (lS < hS) then
+        begin
+          Move(pArr[lS], SwapBuf, aSize);
+          Move(pArr[hS], pArr[lS], aSize);
+          Move(SwapBuf, pArr[hS], aSize);
+          // Position of pivot was changed
+          if (lS = pivotS) then
+            pivotS := hS
+          else if (hS = pivotS) then
+            pivotS := lS;
+        end;
+        Inc(lS, aSize);
+        Dec(hS, aSize);
       end;
-      while (aCompFunc( pArr[ms], pArr[hs] ) < 0) do
-      begin
-        Dec(hs, aSize);
-        Dec(hi);
-      end;
-      if (ls <= hs) then
-      begin
-        Move(pArr[ls], SwapBuf, aSize);
-        Move(pArr[hs], pArr[ls], aSize);
-        Move(SwapBuf, pArr[hs], aSize);
-        Inc(ls, aSize);
-        Inc(li);
-        Dec(hs, aSize);
-        Dec(hi);
-      end;
-    until (ls > hs);
-    if (MinIdx < hi) then
-      QuickSort(MinIdx,hi,SwapBuf);
-    if (li < MaxIdx) then
-      QuickSort(li,MaxIdx,SwapBuf);
+    until (lS > hS);
+    if (MinIdx < hS) then
+      QuickSort(MinIdx,hS,SwapBuf);
+    if (MaxIdx > lS) then
+      QuickSort(lS,MaxIdx,SwapBuf);
   end;
+
 var
   Buf: array of Byte;
 begin
+  if (aMinIdx >= aMaxIdx) OR (aSize = 0) then
+    Exit;
   SetLength(Buf, aSize);
-  QuickSort(aMinIdx,aMaxIdx,Buf[0]);
+  QuickSort(aMinIdx*aSize,aMaxIdx*aSize,Buf[0]);
 end;
 
 end.

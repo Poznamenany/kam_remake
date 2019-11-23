@@ -172,7 +172,7 @@ uses
 const
   //TownHall default units troops cost (number of gold chests needed)
   TH_DEFAULT_TROOP_COST: array[0..5] of Byte = (
-    3, 3, 3, 5, 10, 10
+    3, 3, 3, 5, 8, 8
   );
 
 

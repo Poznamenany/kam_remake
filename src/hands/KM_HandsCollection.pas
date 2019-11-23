@@ -75,7 +75,7 @@ type
     procedure RevealForTeam(aPlayer: TKMHandID; const Pos: TKMPoint; Radius,Amount: Word);
     procedure SyncFogOfWar;
     procedure AddDefaultGoalsToAll(aMissionMode: TKMissionMode);
-    procedure DisableGoalsForDefeatedHand(aHandIndex: TKMHandID);
+    procedure UpdateGoalsForHand(aHandIndex: TKMHandID; aEnable: Boolean);
     procedure PostLoadMission;
 
     procedure Save(SaveStream: TKMemoryStream; aMultiplayer: Boolean);
@@ -85,6 +85,7 @@ type
 
     procedure UpdateState(aTick: Cardinal);
     procedure Paint(const aRect: TKMRect);
+    function ObjToString: String;
 
     procedure ExportGameStatsToCSV(const aPath: String; const aHeader: String = '');
   end;
@@ -888,12 +889,13 @@ begin
 end;
 
 
-procedure TKMHandsCollection.DisableGoalsForDefeatedHand(aHandIndex: TKMHandID);
-var I: Integer;
+procedure TKMHandsCollection.UpdateGoalsForHand(aHandIndex: TKMHandID; aEnable: Boolean);
+var
+  I: Integer;
 begin
   for I := 0 to fCount - 1 do
     if I <> aHandIndex then
-      fHandsList[I].AI.Goals.DisableGoalsForHand(aHandIndex);
+      fHandsList[I].AI.Goals.UpdateGoalsForHand(aHandIndex, aEnable);
 end;
 
 
@@ -1004,7 +1006,7 @@ begin
         if K > 0 then
           TStr := TStr + ' + ';
 
-        TStr := TStr + fHandsList[I].GetOwnerName;
+        TStr := TStr + fHandsList[I].CalcOwnerName;
 
         Inc(K);
       end;
@@ -1073,6 +1075,17 @@ begin
     fHandsList[I].Paint(aRect);
 
   PlayerAnimals.Paint(aRect);
+end;
+
+
+function TKMHandsCollection.ObjToString: String;
+var
+  I: Integer;
+begin
+  Result := 'Hands: ';
+  for I := 0 to fCount - 1 do
+    Result := Format('%s|%d: %s', [Result, I, fHandsList[I].ObjToString]);
+
 end;
 
 

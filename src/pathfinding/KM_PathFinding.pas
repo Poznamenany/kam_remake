@@ -295,7 +295,8 @@ begin
     for K := 0 to 5 do
     begin
       NewL := KMLengthDiag(fLocA, fCache[I].Route[K]);
-      if NewL < 2 then
+      if (NewL <= 1) OR ((NewL < 2) AND gTerrain.CanWalkDiagonaly(fLocA, fCache[I].Route[K].X, fCache[I].Route[K].Y)) then
+      //if (NewL < 2) then
       begin
         BestStart := K;
         BestL := NewL;
@@ -309,7 +310,8 @@ begin
     for K := fCache[I].Route.Count - 1 downto fCache[I].Route.Count - 5 do
     begin
       NewL := KMLengthDiag(fLocB, fCache[I].Route[K]);
-      if NewL < 2 then
+      if (NewL <= 1) OR ((NewL < 2) AND gTerrain.CanWalkDiagonaly(fLocB, fCache[I].Route[K].X, fCache[I].Route[K].Y)) then
+      //if (NewL < 2) then
       begin
         BestEnd := K;
         BestL := NewL;

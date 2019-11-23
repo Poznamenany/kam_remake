@@ -10,7 +10,7 @@ type
 
 const
   // Total number of different functions in the game that can have a shortcut
-  FUNC_COUNT = 97;
+  FUNC_COUNT = 98;
 
   // Load key IDs from inc file
   {$I KM_KeyIDs.inc}
@@ -76,6 +76,7 @@ const
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0,           // Dynamic selection groups 11-20 (no defaults)
 
     // Spectate/Replay view Keys
+    0,                                      // Open/Close spectator statistics panel
     49, 50, 51, 52, 53, 54, 55, 56, 57, 48, 189, 61, // Switch between players while spectating/viewing replay (1-8)
 
     // Map Editor Keys
@@ -116,6 +117,7 @@ const
     TX_KEY_FUNC_SELECT_16,TX_KEY_FUNC_SELECT_17,TX_KEY_FUNC_SELECT_18,TX_KEY_FUNC_SELECT_19,TX_KEY_FUNC_SELECT_20,  // Dynamic selection groups 16-20
 
     // Spectate MP game/Replay view Keys
+    TX_KEY_FUNC_SPECPANEL_DROPBOX_OPEN_CLOSE,
     TX_KEY_FUNC_SPECTATE_PLAYER_1, TX_KEY_FUNC_SPECTATE_PLAYER_2, TX_KEY_FUNC_SPECTATE_PLAYER_3, TX_KEY_FUNC_SPECTATE_PLAYER_4,    // Spectator/Replay player switch
     TX_KEY_FUNC_SPECTATE_PLAYER_5, TX_KEY_FUNC_SPECTATE_PLAYER_6, TX_KEY_FUNC_SPECTATE_PLAYER_7, TX_KEY_FUNC_SPECTATE_PLAYER_8,    // Spectator/Replay player switch
     TX_KEY_FUNC_SPECTATE_PLAYER_9, TX_KEY_FUNC_SPECTATE_PLAYER_10, TX_KEY_FUNC_SPECTATE_PLAYER_11, TX_KEY_FUNC_SPECTATE_PLAYER_12, // Spectator/Replay player switch
