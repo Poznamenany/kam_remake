@@ -5,7 +5,7 @@ uses
   Classes, Graphics, KromUtils, Math, SysUtils, Contnrs,
   KM_Defaults, KM_Points, KM_CommonClasses, KM_CommonTypes, KM_CommonUtils,
   KM_TerrainFinder, KM_PerfLog, KM_Houses, KM_ResHouses, KM_ResWares, KM_Sort,
-  KM_PathFindingRoad, KM_CityPredictor, KM_Eye, KM_AIParameters,
+  KM_PathFindingRoad, KM_PathFindingAStarNew, KM_CityPredictor, KM_Eye, KM_AIParameters,
   KM_AIInfluences, KM_NavMeshDefences;
 
 const
@@ -32,6 +32,12 @@ type
     function IsWalkableTile(aX, aY: Word): Boolean; override;
     function MovementCost(aFromX, aFromY, aToX, aToY: Word): Word; override;
   public
+    {$IFDEF DEBUG_NewAI}
+      Ctr: Word;
+      Price: array[0..256,0..256] of Word;
+      Order: array[0..256,0..256] of Word;
+      function Route_Make(const aLocA, aLocB: TKMPoint; NodeList: TKMPointList): Boolean; reintroduce;
+    {$ENDIF}
   end;
 
   TPathFindingShortcutsCityPlanner = class(TPathFindingCityPlanner)
@@ -2468,26 +2474,42 @@ var
   Color: Cardinal;
   HMA: THouseMappingArray;
   {$IFDEF DEBUG_NewAI}
+  X,Y: Integer;
   Val: Cardinal;
   {$ENDIF}
 begin
 
   {$IFDEF DEBUG_NewAI}
+    //fPrice[aToY,aTox] := Result;
+    with fRoadPlanner do
+      for Y := Low(Price) to High(Price) do
+      for X := Low(Price[Y]) to High(Price[Y]) do
+      begin
+        Val := GA_PATHFINDING_BasePrice + Max(Max(GA_PATHFINDING_noBuildArea,GA_PATHFINDING_Field),Max(Max(GA_PATHFINDING_Coal,GA_PATHFINDING_Forest),GA_PATHFINDING_OtherCase));
+        Val := Cardinal(Max(0, Min(250, Round(Price[Y,X]/Single(Val)*250))));
+        //gRenderAux.Quad(X, Y, (Val shl 24) OR COLOR_RED);
+        gRenderAux.Text(X, Y, IntToStr(Order[Y,X]), $FF000000);
+      end;
+    //fRoadPlanner: TPathFindingCityPlanner;
+    //fRoadShortcutPlanner:
+  {$ENDIF}
+
+  {$IFDEF DEBUG_NewAI}
   Division := 1;
-  for L := Low(DA1) to High(DA1) do
-  for K := Low(DA1[0]) to High(DA1[0]) do
-    if (Division < DA1[L,K]) then
-      Division := DA1[L,K];
-  for L := Low(DA1) to High(DA1) do
-  for K := Low(DA1[0]) to High(DA1[0]) do
-    if gTerrain.TileInMapCoords(K,L) then
+  for Y := Low(DA1) to High(DA1) do
+  for X := Low(DA1[0]) to High(DA1[0]) do
+    if (Division < DA1[Y,X]) then
+      Division := DA1[Y,X];
+  for Y := Low(DA1) to High(DA1) do
+  for X := Low(DA1[0]) to High(DA1[0]) do
+    if gTerrain.TileInMapCoords(X,Y) then
     begin
-      Val := Cardinal(Max(0, Min(250, Round(DA1[L,K]/Division*250))));
-      gRenderAux.Quad(K, L, (Val shl 24) OR COLOR_YELLOW);
-      //gRenderAux.Text(K, L, IntToStr(Round(DA1[L,K])), $FF000000);
-      //gRenderAux.Quad(K, L, (Cardinal(Max(0, Min(127, DA2[L,K]))) shl 24) OR COLOR_WHITE);
-      //gRenderAux.Quad(K, L, (Cardinal(Max(0, Min(127, DA3[L,K]))) shl 24) OR COLOR_BLUE);
-      //gRenderAux.Quad(K, L, (Cardinal(Max(0, Min(127, DA4[L,K]))) shl 24) OR COLOR_BLACK);
+      Val := Cardinal(Max(0, Min(250, Round(DA1[Y,X]/Division*250))));
+      gRenderAux.Quad(X, Y, (Val shl 24) OR COLOR_YELLOW);
+      //gRenderAux.Text(X, Y, IntToStr(Round(DA1[Y,X])), $FF000000);
+      //gRenderAux.Quad(X, Y, (Cardinal(Max(0, Min(127, DA2[Y,X]))) shl 24) OR COLOR_WHITE);
+      //gRenderAux.Quad(X, Y, (Cardinal(Max(0, Min(127, DA3[Y,X]))) shl 24) OR COLOR_BLUE);
+      //gRenderAux.Quad(X, Y, (Cardinal(Max(0, Min(127, DA4[Y,X]))) shl 24) OR COLOR_BLACK);
     end;
   {$ENDIF}
 
@@ -2542,6 +2564,17 @@ end;
 
 
 { TPathFindingCityPlanner }
+
+{$IFDEF DEBUG_NewAI}
+function TPathFindingCityPlanner.Route_Make(const aLocA, aLocB: TKMPoint; NodeList: TKMPointList): Boolean;
+begin
+  //FillChar(Price,SizeOf(Price),#0);
+  //FillChar(Order,SizeOf(Order),#0);
+  Result := inherited Route_Make(aLocA, aLocB, NodeList);
+end;
+{$ENDIF}
+
+
 function TPathFindingCityPlanner.IsWalkableTile(aX, aY: Word): Boolean;
 begin
   // Just in case that worker will die while digging house plan or when you plan road near ally
@@ -2553,8 +2586,14 @@ function TPathFindingCityPlanner.MovementCost(aFromX, aFromY, aToX, aToY: Word):
 var
   IsRoad: Boolean;
   AvoidBuilding: Byte;
+  Node: TANode;
 begin
   Result := GA_PATHFINDING_BasePrice;
+
+  Node := GetNodeAt(aFromX, aFromY);
+  if (Node <> nil) AND (Node.Parent <> nil) AND (Node.Parent.X <> aToX) AND (Node.Parent.Y <> aToY) then
+    Inc(Result, GA_PATHFINDING_TurnPenalization);
+
   AvoidBuilding := gAIFields.Influences.AvoidBuilding[aToY, aToX];
   IsRoad := (AvoidBuilding = AVOID_BUILDING_NODE_LOCK_ROAD)                                     // Reserved road plan
             OR (tpWalkRoad in gTerrain.Land[aToY, aToX].Passability)                            // Completed road
@@ -2577,6 +2616,11 @@ begin
   else if not (tpBuild in gTerrain.Land[aToY,aToX].Passability) then Inc(Result, GA_PATHFINDING_noBuildArea)
   // Other case
   else                                                               Inc(Result, GA_PATHFINDING_OtherCase);
+  {$IFDEF DEBUG_NewAI}
+    Price[aToY,aTox] := Result;
+    Inc(Ctr);
+    Order[aToY,aTox] := Ctr;
+  {$ENDIF}
 end;
 
 
@@ -2585,7 +2629,14 @@ function TPathFindingShortcutsCityPlanner.MovementCost(aFromX, aFromY, aToX, aTo
 var
   IsRoad: Boolean;
   AvoidBuilding: Byte;
+  Node: TANode;
 begin
+  Result := GA_SHORTCUTS_BasePrice;
+
+  Node := GetNodeAt(aFromX, aFromY);
+  if (Node <> nil) AND (Node.Parent <> nil) AND (Node.Parent.X <> aToX) AND (Node.Parent.Y <> aToY) then
+    Inc(Result, GA_SHORTCUTS_TurnPenalization);
+
   Result := GA_SHORTCUTS_BasePrice;
   AvoidBuilding := gAIFields.Influences.AvoidBuilding[aToY, aToX];
   IsRoad := (AvoidBuilding = AVOID_BUILDING_NODE_LOCK_ROAD)                                     // Reserved road plan
@@ -2609,6 +2660,9 @@ begin
   else if not (tpBuild in gTerrain.Land[aToY,aToX].Passability) then Inc(Result, GA_SHORTCUTS_noBuildArea)
   // Other case
   else                                                               Inc(Result, GA_SHORTCUTS_OtherCase);
+  {$IFDEF DEBUG_NewAI}
+    Price[aToY,aTox] := Result;
+  {$ENDIF}
 end;
 
 

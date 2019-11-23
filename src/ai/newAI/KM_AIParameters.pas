@@ -111,13 +111,15 @@ var
 // of first road to new house and pathfinding of shortcuts
 //{
   GA_PATHFINDING_BasePrice                           : Word = 68;
+  GA_PATHFINDING_TurnPenalization                    : Word = 20;
   GA_PATHFINDING_Road                                : Word = 29;
-  GA_PATHFINDING_noBuildArea                         : Word = 58;
+  GA_PATHFINDING_noBuildArea                         : Word = 10;
   GA_PATHFINDING_Field                               : Word = 48;
   GA_PATHFINDING_Coal                                : Word =  0;
   GA_PATHFINDING_Forest                              : Word = 65;
-  GA_PATHFINDING_OtherCase                           : Word = 29;
+  GA_PATHFINDING_OtherCase                           : Word = 50;
   GA_SHORTCUTS_BasePrice                             : Word = 75;
+  GA_SHORTCUTS_TurnPenalization                      : Word = 20;
   GA_SHORTCUTS_Road                                  : Word = 45;
   GA_SHORTCUTS_noBuildArea                           : Word = 17;
   GA_SHORTCUTS_Field                                 : Word = 32;

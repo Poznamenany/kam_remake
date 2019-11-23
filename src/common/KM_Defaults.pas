@@ -49,7 +49,7 @@ const
   //Also there is a technical limit, of how many ticks we can calculate per update
   MAX_TICKS_PER_GAME_UPDATE = 100;
 
-  DEBUG_CFG = False; //Debug preset for most usable debug options
+  DEBUG_CFG = True; //Debug preset for most usable debug options
 var
   // These should be True (we can occasionally turn them Off to speed up the debug)
   CALC_EXPECTED_TICK    :Boolean = not DEBUG_CFG;  //Do we calculate expected tick and try to be in-time (send as many tick as needed to get to expected tick)

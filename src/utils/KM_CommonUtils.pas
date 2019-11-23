@@ -1041,6 +1041,8 @@ begin
     aSeed := NextSeed + M;
 
   Result := aSeed / M;
+
+  Result := 0.5;
 end;
 
 
