@@ -2949,6 +2949,9 @@ begin
       FallingTrees.Add(Loc, ChopableTrees[I, caAgeFall], fAnimStep);
       if gMySpectator.FogOfWar.CheckTileRevelation(Loc.X, Loc.Y) >= 255 then
         gSoundPlayer.Play(sfxTreeDown, Loc, True);
+
+      //Update passability immidiately
+      UpdatePassability(KMRectGrow(KMRect(Loc), 1));
       Exit(True);
     end;
 end;
