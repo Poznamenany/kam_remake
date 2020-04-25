@@ -542,7 +542,7 @@ var
 begin
   LoadStream.CheckMarker('FOW');
   LoadStream.Read(fAnimStep);
-  LoadStream.Write(fInitialRevealAll);
+  LoadStream.Read(fInitialRevealAll);
   fInitialRevealers.LoadFromStream(LoadStream);
 
   SetMapSize(fMapX, fMapY);
